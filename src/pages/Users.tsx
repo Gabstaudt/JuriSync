@@ -64,7 +64,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { usersService, inviteService } from "@/lib/services/users";
+import { usersService, accessCodeService } from "@/lib/services/users";
 
 const defaultPermissions: Record<UserRole, UserPermissions> = {
   admin: {
@@ -102,6 +102,32 @@ const defaultPermissions: Record<UserRole, UserPermissions> = {
   },
 };
 
+const getRoleLabel = (role: UserRole) => {
+  const labels = {
+    admin: "Administrador",
+    manager: "Gerente",
+    user: "Usuário",
+  };
+  return labels[role];
+};
+
+const getRoleColor = (role: UserRole) => {
+  const colors = {
+    admin: "bg-red-100 text-red-800",
+    manager: "bg-blue-100 text-blue-800",
+    user: "bg-green-100 text-green-800",
+  };
+  return colors[role];
+};
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
 export default function Users() {
   const { user, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -119,9 +145,8 @@ export default function Users() {
     isActive: true,
   });
   const [newInvite, setNewInvite] = useState({
-    email: "",
     role: "user" as UserRole,
-    department: "",
+    expiresAt: "",
   });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
@@ -131,7 +156,7 @@ export default function Users() {
       try {
         const [userData, invites] = await Promise.all([
           usersService.list(),
-          inviteService.list(),
+          accessCodeService.list(),
         ]);
         setUsers(
           userData.map((u) => ({
@@ -142,11 +167,14 @@ export default function Users() {
           })),
         );
         setInviteCodes(
-          invites.map((i) => ({
+          invites.map((i: any) => ({
             ...i,
-            createdAt: i.createdAt ? new Date(i.createdAt) : new Date(),
-            expiresAt: i.expiresAt ? new Date(i.expiresAt) : undefined,
-            usedAt: i.usedAt ? new Date(i.usedAt) : undefined,
+            createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
+            expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
+            usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
+            role: i.role,
+            code: i.code,
+            isActive: i.is_active ?? i.isActive,
           })) as unknown as InviteCode[],
         );
       } catch (error: any) {
@@ -157,7 +185,8 @@ export default function Users() {
   }, []);
 
 
-  const generateInviteCode = () => {
+  
+const generateInviteCode = () => {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let result = "";
     for (let i = 0; i < 12; i++) {
@@ -169,25 +198,19 @@ export default function Users() {
   };
 
   const handleCreateInvite = async () => {
-    if (!newInvite.email && !newInvite.role) {
-      toast.error("Preencha pelo menos o e-mail ou selecione um cargo");
-      return;
-    }
-
     const code = generateInviteCode();
     try {
-      const created = await inviteService.create({
+      const created = await accessCodeService.create({
         code,
-        email: newInvite.email || undefined,
         role: newInvite.role,
-        department: newInvite.department || undefined,
+        expiresAt: newInvite.expiresAt || undefined,
       });
       setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
-      setNewInvite({ email: "", role: "user", department: "" });
+      setNewInvite({ role: "user", expiresAt: "" } as any);
       setShowInviteDialog(false);
-      toast.success("C?digo de convite criado com sucesso!");
+      toast.success("C?digo de acesso criado com sucesso!");
     } catch (error: any) {
-      toast.error(error?.message || "Erro ao criar convite");
+      toast.error(error?.message || "Erro ao criar c?digo");
     }
   };
 
@@ -315,22 +338,6 @@ const getUserPermissions = (userRole: UserRole) => {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail (opcional)</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@empresa.com"
-                    value={newInvite.email}
-                    onChange={(e) =>
-                      setNewInvite((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="role">Cargo</Label>
                   <Select
                     value={newInvite.role}
@@ -353,15 +360,15 @@ const getUserPermissions = (userRole: UserRole) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Departamento (opcional)</Label>
+                  <Label htmlFor="expiresAt">Expira em (opcional)</Label>
                   <Input
-                    id="department"
-                    placeholder="Ex: Jurídico, Financeiro"
-                    value={newInvite.department}
+                    id="expiresAt"
+                    type="date"
+                    value={newInvite.expiresAt}
                     onChange={(e) =>
                       setNewInvite((prev) => ({
                         ...prev,
-                        department: e.target.value,
+                        expiresAt: e.target.value,
                       }))
                     }
                   />
@@ -617,10 +624,14 @@ const getUserPermissions = (userRole: UserRole) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {invite.createdAt.toLocaleDateString("pt-BR")}
+                          {invite.createdAt
+                            ? new Date(invite.createdAt).toLocaleDateString("pt-BR")
+                            : "-"}
                         </TableCell>
                         <TableCell>
-                          {invite.expiresAt.toLocaleDateString("pt-BR")}
+                          {invite.expiresAt
+                            ? new Date(invite.expiresAt).toLocaleDateString("pt-BR")
+                            : "Sem expiração"}
                         </TableCell>
                         <TableCell>
                           <Badge

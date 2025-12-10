@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  ecosystemId?: string;
   name: string;
   email: string;
   avatar?: string;
@@ -46,7 +47,11 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
-  inviteCode: string;
+  inviteCode?: string; // legacy
+  accessCode?: string;
+  role: UserRole;
+  ecosystemName?: string;
+  isFirstAdmin?: boolean;
   department?: string;
   phone?: string;
 }

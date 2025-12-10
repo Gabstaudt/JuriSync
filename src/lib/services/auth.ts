@@ -13,7 +13,11 @@ export const authService = {
     name: string;
     email: string;
     password: string;
-    inviteCode: string;
+    role: "admin" | "manager" | "user";
+    accessCode?: string;
+    inviteCode?: string;
+    ecosystemName?: string;
+    isFirstAdmin?: boolean;
     department?: string;
     phone?: string;
   }) => api.post<LoginResponse>("/api/auth/register", payload),

@@ -35,6 +35,7 @@ const parseUser = (u: PublicUser): User => ({
   createdAt: new Date(u.createdAt),
   updatedAt: new Date(u.updatedAt),
   lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+  ecosystemId: (u as any).ecosystemId,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

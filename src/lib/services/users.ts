@@ -24,9 +24,11 @@ export interface InviteCode {
   isActive: boolean;
 }
 
-export const inviteService = {
-  list: (activeOnly = false) =>
-    api.get<InviteCode[]>(`/api/invite-codes${activeOnly ? "?active=true" : ""}`),
-  create: (payload: { role: InviteCode["role"]; email?: string; department?: string; expiresAt?: string; code?: string }) =>
-    api.post<InviteCode>("/api/invite-codes", payload),
+export const accessCodeService = {
+  list: () => api.get<InviteCode[]>("/api/access-codes"),
+  create: (payload: {
+    role: InviteCode["role"];
+    expiresAt?: string;
+    code?: string;
+  }) => api.post<InviteCode>("/api/access-codes", payload),
 };
