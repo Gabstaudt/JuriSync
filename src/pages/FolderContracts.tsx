@@ -3,11 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Contract, ContractFilters } from "@/types/contract";
 import { Folder } from "@/types/folder";
-import {
-  loadContractsFromStorage,
-  filterContracts,
-  formatCurrency,
-} from "@/lib/contracts";
+import { filterContracts, formatCurrency } from "@/lib/contracts";
 import { ContractTable } from "@/components/contracts/ContractTable";
 import { ContractCard } from "@/components/contracts/ContractCard";
 import { ContractFilters as FiltersComponent } from "@/components/contracts/ContractFilters";
@@ -42,6 +38,8 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { foldersService } from "@/lib/services/folders";
+import { contractsService } from "@/lib/services/contracts";
 
 export default function FolderContracts() {
   const { folderId } = useParams<{ folderId: string }>();
@@ -55,31 +53,37 @@ export default function FolderContracts() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
+      if (!folderId) return;
       try {
-        // Load folder
-        const storedFolders = localStorage.getItem("jurisync_folders");
-        if (storedFolders) {
-          const folders = JSON.parse(storedFolders);
-          const foundFolder = folders.find((f: Folder) => f.id === folderId);
-          if (foundFolder) {
-            setFolder({
-              ...foundFolder,
-              createdAt: new Date(foundFolder.createdAt),
-              updatedAt: new Date(foundFolder.updatedAt),
-            });
-          }
+        setIsLoading(true);
+        const [folderData, contractsData] = await Promise.all([
+          foldersService.get(folderId),
+          foldersService.contracts(folderId),
+        ]);
+
+        if (folderData) {
+          setFolder({
+            ...folderData,
+            createdAt: new Date(folderData.createdAt),
+            updatedAt: new Date(folderData.updatedAt),
+          } as Folder);
         }
 
-        // Load contracts
-        const allContracts = loadContractsFromStorage();
-        const folderContracts = allContracts.filter(
-          (contract) => contract.folderId === folderId,
-        );
-        setContracts(folderContracts);
-        setFilteredContracts(folderContracts);
-      } catch (error) {
-        toast.error("Erro ao carregar dados da pasta");
+        const parsedContracts = Array.isArray(contractsData)
+          ? contractsData.map((c) => ({
+              ...c,
+              startDate: new Date(c.startDate),
+              endDate: new Date(c.endDate),
+              createdAt: new Date(c.createdAt),
+              updatedAt: new Date(c.updatedAt),
+            }))
+          : [];
+
+        setContracts(parsedContracts);
+        setFilteredContracts(parsedContracts);
+      } catch (error: any) {
+        toast.error(error?.message || "Erro ao carregar dados da pasta");
       } finally {
         setIsLoading(false);
       }

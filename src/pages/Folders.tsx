@@ -68,6 +68,37 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const getIconComponent = (icon: string) => {
+  const map: Record<string, any> = {
+    FolderOpen,
+    Folder: FolderOpen,
+    MoreHorizontal,
+    Edit,
+    Trash2,
+    Eye,
+    Settings,
+    Users,
+    Archive,
+    Building,
+    Briefcase,
+    Shield,
+    Scale,
+    FileText,
+    Star,
+    Heart,
+    Lock,
+    Globe,
+    Zap,
+  };
+  return map[icon] || FolderOpen;
+};
+
+const getTotalContracts = (folders?: Folder[]) => {
+  const safe = Array.isArray(folders) ? folders : [];
+  return safe.reduce((sum, f) => sum + (f.contractCount || 0), 0);
+};
+
+
 // Mock data for folders
 
 export default function Folders() {
@@ -89,13 +120,14 @@ export default function Folders() {
     const fetchFolders = async () => {
       try {
         const data = await foldersService.list();
-        setFolders(
-          data.map((f) => ({
-            ...f,
-            createdAt: new Date(f.createdAt),
-            updatedAt: new Date(f.updatedAt),
-          })),
-        );
+        const parsed = Array.isArray(data)
+          ? data.map((f) => ({
+              ...f,
+              createdAt: new Date(f.createdAt),
+              updatedAt: new Date(f.updatedAt),
+            }))
+          : [];
+        setFolders(parsed);
       } catch (error: any) {
         toast.error(error?.message || "Erro ao carregar pastas");
       }
