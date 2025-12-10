@@ -14,6 +14,21 @@ export interface User {
   invitedBy?: string;
 }
 
+// Representação recebida da API (datas podem vir como string)
+export interface PublicUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  department?: string | null;
+  phone?: string | null;
+  inviteCode?: string | null;
+  isActive: boolean;
+  lastLoginAt?: string | Date | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 export type UserRole = "admin" | "manager" | "user";
 
 export interface AuthState {

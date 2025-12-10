@@ -2,14 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Contract, ContractFilters } from "@/types/contract";
-import {
-  loadContractsFromStorage,
-  saveContractsToStorage,
-  filterContracts,
-  getDashboardStats,
-  getChartData,
-  updateContractStatuses,
-} from "@/lib/contracts";
+import { filterContracts, getDashboardStats, getChartData, updateContractStatuses } from "@/lib/contracts";
 import { exportWithOptions, exportPresets } from "@/lib/export";
 import { ContractTable } from "@/components/contracts/ContractTable";
 import { ContractCard } from "@/components/contracts/ContractCard";
@@ -65,7 +58,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/contracts";
-import { mockUsers } from "@/contexts/AuthContext";
+import { contractsService } from "@/lib/services/contracts";
+import { usersService } from "@/lib/services/users";
+import { User } from "@/types/auth";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -76,6 +71,7 @@ export default function Dashboard() {
   const [showImport, setShowImport] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
   const [notificationData, setNotificationData] = useState({
     recipients: [] as string[],
     subject: "",
@@ -83,13 +79,46 @@ export default function Dashboard() {
     contracts: [] as string[],
   });
 
-  // Load contracts on mount
   useEffect(() => {
-    const loadedContracts = loadContractsFromStorage();
-    const updatedContracts = updateContractStatuses(loadedContracts);
-    setContracts(updatedContracts);
-    saveContractsToStorage(updatedContracts);
-    setIsLoading(false);
+    const fetchContracts = async () => {
+      try {
+        setIsLoading(true);
+        const data = await contractsService.list();
+        const updatedContracts = updateContractStatuses(
+          data.map((c) => ({
+            ...c,
+            startDate: new Date(c.startDate),
+            endDate: new Date(c.endDate),
+            createdAt: new Date(c.createdAt),
+            updatedAt: new Date(c.updatedAt),
+          })),
+        );
+        setContracts(updatedContracts);
+      } catch (error: any) {
+        toast.error(error?.message || "Erro ao carregar contratos");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchContracts();
+  }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await usersService.list();
+        const parsed = data.map((u) => ({
+          ...u,
+          createdAt: new Date(u.createdAt),
+          updatedAt: new Date(u.updatedAt),
+          lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+        }));
+        setUsers(parsed as unknown as User[]);
+      } catch {
+        // silently ignore for now
+      }
+    };
+    fetchUsers();
   }, []);
 
   // Filter contracts
@@ -107,8 +136,7 @@ export default function Dashboard() {
     contractData: Partial<Contract>,
     file: File,
   ) => {
-    const newContract: Contract = {
-      id: crypto.randomUUID(),
+    const payload: Partial<Contract> = {
       name: contractData.name || `Contrato ${file.name}`,
       description: contractData.description,
       contractingCompany: contractData.contractingCompany || "",
@@ -119,28 +147,8 @@ export default function Dashboard() {
       internalResponsible: contractData.internalResponsible || "",
       responsibleEmail: contractData.responsibleEmail || "",
       status: contractData.status || "active",
-      fileName: file.name,
-      fileType: file.name.endsWith(".pdf") ? "pdf" : "docx",
-      filePath: `/contracts/${file.name}`,
       tags: [],
       priority: "medium",
-      createdBy: user?.id || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      comments: [],
-      history: [
-        {
-          id: crypto.randomUUID(),
-          contractId: "",
-          action: "Contrato importado",
-          author: user?.name || "Sistema",
-          authorId: user?.id || "",
-          timestamp: new Date(),
-        },
-      ],
-      attachments: [],
-      notifications: [],
-      isArchived: false,
       permissions: {
         canView: [],
         canEdit: [],
@@ -149,10 +157,22 @@ export default function Dashboard() {
       },
     };
 
-    const updatedContracts = [...contracts, newContract];
-    setContracts(updatedContracts);
-    saveContractsToStorage(updatedContracts);
-    toast.success("Contrato adicionado com sucesso!");
+    contractsService
+      .create(payload)
+      .then((created) => {
+        const parsed = {
+          ...created,
+          startDate: new Date(created.startDate),
+          endDate: new Date(created.endDate),
+          createdAt: new Date(created.createdAt),
+          updatedAt: new Date(created.updatedAt),
+        } as Contract;
+        setContracts((prev) => [...prev, parsed]);
+        toast.success("Contrato adicionado com sucesso!");
+      })
+      .catch((error: any) => {
+        toast.error(error?.message || "Erro ao adicionar contrato");
+      });
   };
 
   const handleExport = async (format: "csv" | "pdf") => {
@@ -576,7 +596,7 @@ export default function Dashboard() {
                 <Label>Destinatários *</Label>
                 <div className="border rounded-lg p-3 max-h-32 overflow-y-auto">
                   <div className="space-y-2">
-                    {mockUsers.map((user) => (
+                    {users.map((user) => (
                       <div
                         key={user.id}
                         className="flex items-center space-x-2"

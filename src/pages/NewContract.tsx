@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CreateContractData, ContractPriority } from "@/types/contract";
 import { Folder } from "@/types/folder";
 import { User } from "@/types/auth";
-import { mockUsers } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
 import {
   Card,
@@ -58,6 +57,9 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { contractsService } from "@/lib/services/contracts";
+import { foldersService } from "@/lib/services/folders";
+import { usersService } from "@/lib/services/users";
 
 export default function NewContract() {
   const navigate = useNavigate();
@@ -93,19 +95,33 @@ export default function NewContract() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Load folders and users
-    const storedFolders = localStorage.getItem("jurisync_folders");
-    if (storedFolders) {
+    const fetchData = async () => {
       try {
-        const parsed = JSON.parse(storedFolders);
-        setFolders(parsed.filter((f: Folder) => f.type === "custom"));
-      } catch {
-        setFolders([]);
+        const [folderData, userData] = await Promise.all([
+          foldersService.list(),
+          usersService.list(),
+        ]);
+        setFolders(
+          folderData
+            .filter((f) => f.type === "custom")
+            .map((f) => ({
+              ...f,
+              createdAt: new Date(f.createdAt),
+              updatedAt: new Date(f.updatedAt),
+            })),
+        );
+        setUsers(
+          userData.map((u) => ({
+            ...u,
+            createdAt: new Date(u.createdAt),
+            updatedAt: new Date(u.updatedAt),
+          })),
+        );
+      } catch (error: any) {
+        toast.error(error?.message || "Erro ao carregar dados");
       }
-    }
-
-    // Use mock users for now
-    setUsers(mockUsers);
+    };
+    fetchData();
   }, []);
 
   const validateForm = () => {
@@ -150,72 +166,26 @@ export default function NewContract() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Create contract object
-      const newContract = {
-        id: crypto.randomUUID(),
-        ...formData,
+      await contractsService.create({
+        name: formData.name,
+        description: formData.description,
+        contractingCompany: formData.contractingCompany,
+        contractedParty: formData.contractedParty,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        value: formData.value,
+        internalResponsible: formData.internalResponsible,
+        responsibleEmail: formData.responsibleEmail,
         folderId: addToFolder ? formData.folderId : undefined,
-        folderPath:
-          addToFolder && formData.folderId
-            ? [getSelectedFolder()?.name || ""]
-            : undefined,
-        status: "active" as const,
-        createdBy: user?.id || "",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        comments: [],
-        history: [
-          {
-            id: crypto.randomUUID(),
-            contractId: "",
-            action: "Contrato criado",
-            author: user?.name || "Sistema",
-            authorId: user?.id || "",
-            timestamp: new Date(),
-          },
-        ],
-        attachments: [],
-        notifications: [],
-        isArchived: false,
-      };
-
-      // Save to localStorage (in production, this would be an API call)
-      const existingContracts = JSON.parse(
-        localStorage.getItem("jurisync_contracts") || "[]",
-      );
-      const updatedContracts = [...existingContracts, newContract];
-      localStorage.setItem(
-        "jurisync_contracts",
-        JSON.stringify(updatedContracts),
-      );
-
-      // Update folder contract count if adding to folder
-      if (addToFolder && formData.folderId) {
-        const existingFolders = JSON.parse(
-          localStorage.getItem("jurisync_folders") || "[]",
-        );
-        const updatedFolders = existingFolders.map((f: Folder) =>
-          f.id === formData.folderId
-            ? {
-                ...f,
-                contractCount: f.contractCount + 1,
-                updatedAt: new Date(),
-              }
-            : f,
-        );
-        localStorage.setItem(
-          "jurisync_folders",
-          JSON.stringify(updatedFolders),
-        );
-      }
-
+        tags: formData.tags,
+        priority: formData.priority,
+        permissions: formData.permissions,
+        status: "active",
+      });
       toast.success("Contrato criado com sucesso!");
       navigate("/contracts");
     } catch (error) {
-      toast.error("Erro ao criar contrato");
+      toast.error((error as any)?.message || "Erro ao criar contrato");
     } finally {
       setIsLoading(false);
     }
@@ -248,44 +218,34 @@ export default function NewContract() {
 
   const handleCreateNewFolder = async () => {
     if (!newFolderName.trim()) {
-      toast.error("Nome da pasta é obrigatório");
+      toast.error("Nome da pasta e obrigatorio");
       return;
     }
 
-    const newFolder: Folder = {
-      id: crypto.randomUUID(),
-      name: newFolderName,
-      description: `Pasta criada durante criação do contrato "${formData.name}"`,
-      color: "#3B82F6",
-      icon: "FolderOpen",
-      path: [],
-      type: "custom",
-      createdBy: user?.id || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      contractCount: 0,
-      isActive: true,
-      permissions: {
-        canView: [],
-        canEdit: [],
-        canManage: [],
-        isPublic: true,
-      },
-    };
-
-    // Save folder
-    const existingFolders = JSON.parse(
-      localStorage.getItem("jurisync_folders") || "[]",
-    );
-    const updatedFolders = [...existingFolders, newFolder];
-    localStorage.setItem("jurisync_folders", JSON.stringify(updatedFolders));
-
-    setFolders((prev) => [...prev, newFolder]);
-    setFormData((prev) => ({ ...prev, folderId: newFolder.id }));
-    setNewFolderName("");
-    setShowNewFolderDialog(false);
-    toast.success("Pasta criada com sucesso!");
+    try {
+      const created = await foldersService.create({
+        name: newFolderName,
+        description: `Pasta criada durante criacao do contrato "${formData.name || newFolderName}"`,
+        color: "#3B82F6",
+        icon: "FolderOpen",
+        type: "custom",
+        permissions: {
+          canView: [],
+          canEdit: [],
+          canManage: [],
+          isPublic: true,
+        },
+      });
+      setFolders((prev) => [...prev, created]);
+      setFormData((prev) => ({ ...prev, folderId: created.id }));
+      setNewFolderName("");
+      setShowNewFolderDialog(false);
+      toast.success("Pasta criada com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao criar pasta");
+    }
   };
+
 
   const handlePermissionChange = (
     userId: string,

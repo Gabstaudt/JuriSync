@@ -5,11 +5,7 @@ import {
   ContractComment,
   ContractHistoryEntry,
 } from "@/types/contract";
-import {
-  loadContractsFromStorage,
-  formatDate,
-  formatCurrency,
-} from "@/lib/contracts";
+import { formatDate, formatCurrency } from "@/lib/contracts";
 import { ContractStatus } from "@/components/contracts/ContractStatus";
 import {
   Card,
@@ -39,6 +35,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
+import { contractsService } from "@/lib/services/contracts";
 
 export default function ContractDetails() {
   const { id } = useParams<{ id: string }>();
@@ -48,52 +45,68 @@ export default function ContractDetails() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const contracts = loadContractsFromStorage();
-    const foundContract = contracts.find((c) => c.id === id);
-    setContract(foundContract || null);
-    setIsLoading(false);
+    const fetchData = async () => {
+      if (!id) return;
+      try {
+        const c = await contractsService.get(id);
+        const comments = await contractsService.comments.list(id);
+        const history = await contractsService.history.list(id);
+        setContract({
+          ...c,
+          startDate: new Date(c.startDate),
+          endDate: new Date(c.endDate),
+          createdAt: new Date(c.createdAt),
+          updatedAt: new Date(c.updatedAt),
+          comments: comments.map((cm) => ({
+            ...cm,
+            createdAt: new Date(cm.createdAt),
+          })),
+          history: history.map((h) => ({
+            ...h,
+            timestamp: new Date(h.timestamp),
+          })),
+        });
+      } catch (error: any) {
+        toast.error(error?.message || "Contrato n?o encontrado");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, [id]);
 
-  const handleAddComment = () => {
+
+  const handleAddComment = async () => {
     if (!contract || !newComment.trim()) return;
 
-    const comment: ContractComment = {
-      id: crypto.randomUUID(),
-      contractId: contract.id,
-      author: "Usuário Atual", // In a real app, this would come from auth
-      content: newComment.trim(),
-      createdAt: new Date(),
-    };
+    try {
+      const created = await contractsService.comments.add(contract.id, {
+        content: newComment.trim(),
+      });
+      const historyEntry = await contractsService.history.add(contract.id, {
+        action: "Coment?rio adicionado",
+        author: created.author,
+      });
 
-    const historyEntry: ContractHistoryEntry = {
-      id: crypto.randomUUID(),
-      contractId: contract.id,
-      action: "Comentário adicionado",
-      author: "Usuário Atual",
-      timestamp: new Date(),
-    };
+      const updatedContract = {
+        ...contract,
+        comments: [
+          ...contract.comments,
+          { ...created, createdAt: new Date(created.createdAt) },
+        ],
+        history: [
+          ...contract.history,
+          { ...historyEntry, timestamp: new Date(historyEntry.timestamp) },
+        ],
+        updatedAt: new Date(),
+      };
 
-    const updatedContract = {
-      ...contract,
-      comments: [...contract.comments, comment],
-      history: [...contract.history, historyEntry],
-      updatedAt: new Date(),
-    };
-
-    setContract(updatedContract);
-    setNewComment("");
-    toast.success("Comentário adicionado com sucesso!");
-
-    // In a real app, this would update the backend
-    // For now, we'll just update local storage
-    const contracts = loadContractsFromStorage();
-    const updatedContracts = contracts.map((c) =>
-      c.id === contract.id ? updatedContract : c,
-    );
-    localStorage.setItem(
-      "jurisync_contracts",
-      JSON.stringify(updatedContracts),
-    );
+      setContract(updatedContract);
+      setNewComment("");
+      toast.success("Coment?rio adicionado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao adicionar coment?rio");
+    }
   };
 
   const handleDownload = () => {

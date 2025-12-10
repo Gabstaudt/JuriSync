@@ -64,7 +64,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { mockUsers } from "@/contexts/AuthContext";
+import { usersService, inviteService } from "@/lib/services/users";
 
 const defaultPermissions: Record<UserRole, UserPermissions> = {
   admin: {
@@ -127,32 +127,35 @@ export default function Users() {
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
 
   useEffect(() => {
-    setUsers(mockUsers);
-
-    setInviteCodes([
-      {
-        id: "1",
-        code: "JURISYNC2024",
-        role: "user",
-        department: "Geral",
-        createdBy: "admin-1",
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        isActive: true,
-      },
-      {
-        id: "2",
-        code: "MANAGER2024",
-        email: "novo.gerente@empresa.com",
-        role: "manager",
-        department: "Jurídico",
-        createdBy: "admin-1",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        isActive: true,
-      },
-    ]);
+    const fetchData = async () => {
+      try {
+        const [userData, invites] = await Promise.all([
+          usersService.list(),
+          inviteService.list(),
+        ]);
+        setUsers(
+          userData.map((u) => ({
+            ...u,
+            createdAt: new Date(u.createdAt),
+            updatedAt: new Date(u.updatedAt),
+            lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+          })),
+        );
+        setInviteCodes(
+          invites.map((i) => ({
+            ...i,
+            createdAt: i.createdAt ? new Date(i.createdAt) : new Date(),
+            expiresAt: i.expiresAt ? new Date(i.expiresAt) : undefined,
+            usedAt: i.usedAt ? new Date(i.usedAt) : undefined,
+          })) as unknown as InviteCode[],
+        );
+      } catch (error: any) {
+        toast.error(error?.message || "Erro ao carregar usu?rios");
+      }
+    };
+    fetchData();
   }, []);
+
 
   const generateInviteCode = () => {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -165,66 +168,30 @@ export default function Users() {
     return result;
   };
 
-  const handleCreateInvite = () => {
+  const handleCreateInvite = async () => {
     if (!newInvite.email && !newInvite.role) {
       toast.error("Preencha pelo menos o e-mail ou selecione um cargo");
       return;
     }
 
     const code = generateInviteCode();
-    const invite: InviteCode = {
-      id: crypto.randomUUID(),
-      code,
-      email: newInvite.email || undefined,
-      role: newInvite.role,
-      department: newInvite.department || undefined,
-      createdBy: user?.id || "",
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      isActive: true,
-    };
-
-    setInviteCodes((prev) => [invite, ...prev]);
-    setNewInvite({ email: "", role: "user", department: "" });
-    setShowInviteDialog(false);
-    toast.success("Código de convite criado com sucesso!");
+    try {
+      const created = await inviteService.create({
+        code,
+        email: newInvite.email || undefined,
+        role: newInvite.role,
+        department: newInvite.department || undefined,
+      });
+      setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
+      setNewInvite({ email: "", role: "user", department: "" });
+      setShowInviteDialog(false);
+      toast.success("C?digo de convite criado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao criar convite");
+    }
   };
 
-  const copyToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    toast.success("Código copiado para a área de transferência!");
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
-
-  const getRoleLabel = (role: UserRole) => {
-    const labels = {
-      admin: "Administrador",
-      manager: "Gerente",
-      user: "Usuário",
-    };
-    return labels[role];
-  };
-
-  const getRoleColor = (role: UserRole) => {
-    const colors = {
-      admin: "bg-red-100 text-red-800",
-      manager: "bg-blue-100 text-blue-800",
-      user: "bg-green-100 text-green-800",
-    };
-    return colors[role];
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const handleEditUser = (userToEdit: User) => {
+const handleEditUser = (userToEdit: User) => {
     setSelectedUser(userToEdit);
     setEditUserData({
       name: userToEdit.name,
@@ -237,24 +204,24 @@ export default function Users() {
     setShowEditDialog(true);
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     if (!selectedUser) return;
 
     try {
-      const updatedUsers = users.map((u) =>
-        u.id === selectedUser.id
-          ? {
-              ...u,
-              ...editUserData,
-              updatedAt: new Date(),
-            }
-          : u,
+      const updated = await usersService.update(selectedUser.id, editUserData);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === selectedUser.id
+            ? {
+                ...updated,
+                createdAt: new Date(updated.createdAt),
+                updatedAt: new Date(updated.updatedAt),
+                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
+              }
+            : u,
+        ),
       );
 
-      setUsers(updatedUsers);
-      localStorage.setItem("jurisync_users", JSON.stringify(updatedUsers));
-
-      // Reset form data
       setEditUserData({
         name: "",
         email: "",
@@ -266,20 +233,34 @@ export default function Users() {
 
       setShowEditDialog(false);
       setSelectedUser(null);
-      toast.success("Usuário atualizado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao salvar usuário");
+      toast.success("Usu?rio atualizado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao salvar usu?rio");
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    const updatedUsers = users.filter((u) => u.id !== userId);
-    setUsers(updatedUsers);
-    localStorage.setItem("jurisync_users", JSON.stringify(updatedUsers));
-    toast.success("Usuário removido com sucesso!");
+const handleDeleteUser = async (userId: string) => {
+    try {
+      const updated = await usersService.update(userId, { isActive: false });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? {
+                ...updated,
+                createdAt: new Date(updated.createdAt),
+                updatedAt: new Date(updated.updatedAt),
+                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
+              }
+            : u,
+        ),
+      );
+      toast.success("Usu?rio inativado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao inativar usu?rio");
+    }
   };
 
-  const getUserPermissions = (userRole: UserRole) => {
+const getUserPermissions = (userRole: UserRole) => {
     return defaultPermissions[userRole];
   };
 
