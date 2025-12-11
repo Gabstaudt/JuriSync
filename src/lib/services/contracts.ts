@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, API_URL } from "@/lib/api";
 import { Contract, ContractComment, ContractHistoryEntry } from "@/types/contract";
 
 export interface ContractFiltersApi {
@@ -42,5 +42,24 @@ export const contractsService = {
       id: string,
       payload: { type: string; message?: string; recipients: string[]; scheduledFor?: string | Date },
     ) => api.post<any>(`/api/contracts/${id}/notifications`, payload),
+  },
+  upload: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${API_URL}/api/contracts/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || "Erro ao enviar arquivo");
+    }
+    return res.json() as Promise<{
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      filePath: string;
+    }>;
   },
 };

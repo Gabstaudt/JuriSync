@@ -20,6 +20,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   Building2,
   Calendar,
@@ -36,6 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { contractsService } from "@/lib/services/contracts";
+import { API_URL } from "@/lib/api";
 
 export default function ContractDetails() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +50,7 @@ export default function ContractDetails() {
   const [contract, setContract] = useState<Contract | null>(null);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [showFileModal, setShowFileModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,6 +82,11 @@ export default function ContractDetails() {
     };
     fetchData();
   }, [id]);
+
+  const fileInfo = contract?.attachments?.[0] || null;
+  const fileName = contract?.fileName || fileInfo?.fileName || fileInfo?.name;
+  const fileType = contract?.fileType || fileInfo?.fileType;
+  const filePath = contract?.filePath || fileInfo?.filePath;
 
 
   const handleAddComment = async () => {
@@ -109,12 +122,30 @@ export default function ContractDetails() {
     }
   };
 
+  
   const handleDownload = () => {
-    if (contract?.fileName) {
-      toast.success(`Download de ${contract.fileName} iniciado`);
-    } else {
+    if (!filePath || !fileName) {
       toast.error("Arquivo não disponível");
+      return;
     }
+
+    const url = `${API_URL}${filePath}`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const handleOpenFile = () => {
+    if (!filePath) {
+      toast.error("Arquivo não disponível");
+      return;
+    }
+    setShowFileModal(true);
   };
 
   const handleNotifyResponsible = () => {
@@ -195,9 +226,14 @@ export default function ContractDetails() {
                 <Mail className="h-4 w-4 mr-1" />
                 Notificar
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenFile}
+                disabled={!filePath}
+              >
                 <Download className="h-4 w-4 mr-1" />
-                Download
+                Visualizar arquivo
               </Button>
               <Button size="sm">
                 <Edit className="h-4 w-4 mr-1" />
@@ -310,7 +346,7 @@ export default function ContractDetails() {
             </Card>
 
             {/* File Information */}
-            {contract.fileName && (
+            {fileName && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -325,10 +361,10 @@ export default function ContractDetails() {
                         <FileText className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{contract.fileName}</p>
+                        <p className="font-medium">{fileName}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
-                            {contract.fileType?.toUpperCase()}
+                            {fileType?.toUpperCase()}
                           </Badge>
                           <p className="text-xs text-muted-foreground">
                             Carregado em {formatDate(contract.createdAt)}
@@ -339,10 +375,11 @@ export default function ContractDetails() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleDownload}
+                      onClick={handleOpenFile}
+                      disabled={!filePath}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download
+                      Visualizar
                     </Button>
                   </div>
                 </CardContent>
@@ -441,10 +478,11 @@ export default function ContractDetails() {
                 <Button
                   className="w-full justify-start"
                   variant="outline"
-                  onClick={handleDownload}
+                  onClick={handleOpenFile}
+                  disabled={!filePath}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Download do Arquivo
+                  Visualizar arquivo
                 </Button>
               </CardContent>
             </Card>
@@ -528,6 +566,42 @@ export default function ContractDetails() {
           </div>
         </div>
       </div>
+      <Dialog open={showFileModal} onOpenChange={setShowFileModal}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Visualizar documento</DialogTitle>
+          </DialogHeader>
+          {filePath ? (
+            <div className="space-y-4">
+              {fileType?.toLowerCase().includes("pdf") ? (
+                <iframe
+                  src={`${API_URL}${filePath}`}
+                  className="w-full h-[70vh] border rounded-lg"
+                  title={fileName || "Arquivo"}
+                />
+              ) : (
+                <div className="p-4 bg-muted rounded-md text-sm">
+                  VisualizaÇõÇœo nÇœo disponÇ­vel para este formato. Baixe o
+                  arquivo para abrir.
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowFileModal(false)}>
+                  Fechar
+                </Button>
+                <Button onClick={handleDownload}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Arquivo nÇœo disponÇ­vel para este contrato.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

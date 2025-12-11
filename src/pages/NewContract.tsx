@@ -71,6 +71,13 @@ export default function NewContract() {
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<{
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    filePath: string;
+  } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<CreateContractData>({
     name: "",
     description: "",
@@ -155,7 +162,26 @@ export default function NewContract() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.match(/\.(pdf|doc|docx)$/i)) {
+      toast.error("Apenas PDF, DOC ou DOCX s?o permitidos");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const uploaded = await contractsService.upload(file);
+      setUploadedFile(uploaded);
+      toast.success("Arquivo enviado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao enviar arquivo");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -180,6 +206,24 @@ export default function NewContract() {
         tags: formData.tags,
         priority: formData.priority,
         permissions: formData.permissions,
+        attachments: uploadedFile
+          ? [
+              {
+                id: crypto.randomUUID(),
+                contractId: "",
+                name: uploadedFile.fileName,
+                fileName: uploadedFile.fileName,
+                fileType: uploadedFile.fileType,
+                fileSize: uploadedFile.fileSize,
+                uploadedBy: user?.id || "",
+                uploadedAt: new Date(),
+                filePath: uploadedFile.filePath,
+              },
+            ]
+          : [],
+        fileName: uploadedFile?.fileName,
+        filePath: uploadedFile?.filePath,
+        fileType: uploadedFile?.fileType as any,
         status: "active",
       });
       toast.success("Contrato criado com sucesso!");
@@ -489,17 +533,34 @@ export default function NewContract() {
                   <Label htmlFor="internalResponsible">
                     Responsável Interno *
                   </Label>
-                  <Input
-                    id="internalResponsible"
-                    placeholder="Nome do responsável"
+                  <Select
                     value={formData.internalResponsible}
-                    onChange={(e) =>
-                      updateFormData("internalResponsible", e.target.value)
-                    }
-                    className={
-                      errors.internalResponsible ? "border-red-500" : ""
-                    }
-                  />
+                    onValueChange={(val) => {
+                      const selected = users.find(
+                        (u) => u.name === val || u.id === val,
+                      );
+                      const name = selected ? selected.name : val;
+                      const email = selected?.email || "";
+                      updateFormData("internalResponsible", name);
+                      if (email) updateFormData("responsibleEmail", email);
+                    }}
+                  >
+                    <SelectTrigger
+                      id="internalResponsible"
+                      className={
+                        errors.internalResponsible ? "border-red-500" : ""
+                      }
+                    >
+                      <SelectValue placeholder="Selecione o responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.name}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.internalResponsible && (
                     <p className="text-sm text-red-600">
                       {errors.internalResponsible}
@@ -690,7 +751,7 @@ export default function NewContract() {
                 Documentos
               </CardTitle>
               <CardDescription>
-                Adicione documentos relacionados ao contrato
+                Fa?a upload do contrato (PDF/DOC/DOCX) ou arraste para a ?rea
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -698,44 +759,48 @@ export default function NewContract() {
                 <input
                   id="documents"
                   type="file"
-                  multiple
-                  accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png"
+                  accept=".pdf,.doc,.docx"
                   className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 0) {
-                      toast.success(
-                        `${files.length} documento(s) adicionado(s)`,
-                      );
-                    }
-                  }}
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
                 />
-                <label htmlFor="documents" className="cursor-pointer">
-                  <div className="space-y-2">
-                    <FileText className="h-8 w-8 text-gray-400 mx-auto" />
-                    <p className="text-sm text-gray-600">
-                      Clique para selecionar documentos ou arraste arquivos aqui
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      PDF, DOCX, DOC, TXT, JPG, PNG (máx. 10MB cada)
-                    </p>
-                  </div>
+                <label htmlFor="documents" className="cursor-pointer block space-y-2">
+                  <FileText className="h-8 w-8 text-gray-400 mx-auto" />
+                  <p className="text-sm text-gray-600">
+                    Clique para selecionar documentos ou arraste arquivos aqui
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    PDF, DOCX, DOC (m?x. 10MB cada)
+                  </p>
                 </label>
               </div>
 
+              {isUploading && (
+                <p className="text-xs text-muted-foreground">Enviando arquivo...</p>
+              )}
+
+              {uploadedFile && (
+                <div className="flex items-center justify-between border rounded-lg p-3 bg-green-50 border-green-200">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        {uploadedFile.fileName}
+                      </p>
+                      <p className="text-xs text-green-700">
+                        {Math.round(uploadedFile.fileSize / 1024)} KB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="text-xs text-gray-500">
-                <p>
-                  • Você pode adicionar contratos assinados, anexos e documentos
-                  de suporte
-                </p>
-                <p>
-                  • Os documentos serão armazenados com segurança e associados
-                  ao contrato
-                </p>
+                <p>? Apenas um arquivo principal por contrato.</p>
+                <p>? O arquivo fica associado e pode ser baixado na visualiza??o.</p>
               </div>
             </CardContent>
           </Card>
-
           {/* Tags */}
           <Card>
             <CardHeader>
