@@ -16,6 +16,7 @@ import {
   Shield,
   Plus,
   X,
+  MessageSquare,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -45,6 +46,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "Pastas",
       icon: FolderOpen,
       href: "/folders",
+      badge: null,
+    },
+    {
+      label: "Chat",
+      icon: MessageSquare,
+      href: "/chat",
       badge: null,
     },
     {

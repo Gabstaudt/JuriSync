@@ -17,6 +17,7 @@ import NewContract from "./pages/NewContract";
 import NewFolder from "./pages/NewFolder";
 import FolderContracts from "./pages/FolderContracts";
 import NotFound from "./pages/NotFound";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <FolderContracts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <Chat />
                 </ProtectedRoute>
               }
             />
