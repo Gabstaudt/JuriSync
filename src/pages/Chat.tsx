@@ -21,6 +21,7 @@ import { Conversation, Message } from "@/types/chat";
 import { useAuth } from "@/contexts/AuthContext";
 import { MessageSquarePlus, Paperclip, Send } from "lucide-react";
 import { usersService } from "@/lib/services/users";
+import { useLocation } from "react-router-dom";
 
 const formatWhen = (value?: string) => {
   if (!value) return "";
@@ -48,6 +49,7 @@ export default function Chat() {
   const [users, setUsers] = useState<
     { id: string; name: string; email: string; role?: string }[]
   >([]);
+  const location = useLocation();
 
   const selectedConversation = useMemo(
     () => conversations.find((c) => c.id === selectedId) || null,
@@ -59,7 +61,14 @@ export default function Chat() {
     try {
       const data = await chatService.listConversations();
       setConversations(data);
-      setSelectedId((current) => current ?? (data[0]?.id ?? null));
+      // Se veio com query ?conversation=xxx, prioriza
+      const searchParams = new URLSearchParams(location.search);
+      const fromQuery = searchParams.get("conversation");
+      if (fromQuery && data.find((c) => c.id === fromQuery)) {
+        setSelectedId(fromQuery);
+      } else {
+        setSelectedId((current) => current ?? (data[0]?.id ?? null));
+      }
     } catch (e: any) {
       toast.error(e?.message || "Erro ao carregar conversas");
     } finally {

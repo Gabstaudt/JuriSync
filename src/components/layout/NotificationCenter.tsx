@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, Check, Clock, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,75 +17,81 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: "info" | "warning" | "success" | "error";
-  isRead: boolean;
-  createdAt: Date;
-  actionUrl?: string;
-}
+import { notificationsService } from "@/lib/services/notifications";
+import { Notification } from "@/types/notification";
+import { API_URL } from "@/lib/api";
 
 export function NotificationCenter() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [source, setSource] = useState<EventSource | null>(null);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const data = await notificationsService.list();
+      setNotifications(data);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao carregar notificacoes");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Load mock notifications
-    const mockNotifications: Notification[] = [
-      {
-        id: "1",
-        title: "Contrato vencendo em breve",
-        message: 'O contrato "Prestação de Serviços - TI" vence em 3 dias',
-        type: "warning",
-        isRead: false,
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        actionUrl: "/contracts/1",
-      },
-      {
-        id: "2",
-        title: "Novo contrato criado",
-        message: 'João Silva criou um novo contrato: "Locação de Equipamentos"',
-        type: "info",
-        isRead: false,
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-        actionUrl: "/contracts/5",
-      },
-      {
-        id: "3",
-        title: "Backup concluído",
-        message: "Backup automático dos dados foi realizado com sucesso",
-        type: "success",
-        isRead: true,
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-      },
-      {
-        id: "4",
-        title: "Contrato vencido",
-        message: 'O contrato "Fornecimento de Materiais" venceu ontem',
-        type: "error",
-        isRead: false,
-        createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000), // 26 hours ago
-        actionUrl: "/contracts/3",
-      },
-    ];
-
-    setNotifications(mockNotifications);
+    let active = true;
+    const load = async () => {
+      await fetchNotifications();
+    };
+    load();
+    const token = localStorage.getItem("jurisync_token");
+    if (token) {
+      const es = new EventSource(`${API_URL}/api/notifications/stream?token=${token}`);
+      es.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === "notification" && payload.data) {
+            setNotifications((prev) => [payload.data as Notification, ...prev]);
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+      es.onerror = () => {
+        es.close();
+      };
+      setSource(es);
+    }
+    return () => {
+      active = false;
+      if (source) source.close();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAsRead = (notificationId: string) => {
+  const markAsRead = async (notificationId: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)),
     );
+    try {
+      await notificationsService.markRead(notificationId);
+    } catch {
+      // ignora erro
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    toast.success("Todas as notificações foram marcadas como lidas");
+    try {
+      await notificationsService.markAll();
+      toast.success("Todas as notificacoes foram marcadas como lidas");
+    } catch {
+      toast.error("Nao foi possivel marcar todas como lidas");
+    }
   };
 
   const removeNotification = (notificationId: string) => {
@@ -104,26 +111,26 @@ export function NotificationCenter() {
     }
   };
 
-  const getTimeAgo = (date: Date) => {
+  const getTimeAgo = (date: string) => {
     const now = new Date();
-    const diffInHours = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60),
-    );
+    const dt = new Date(date);
+    const diffInHours = Math.floor((now.getTime() - dt.getTime()) / (1000 * 60 * 60));
+    if (diffInHours < 1) return "Agora mesmo";
+    if (diffInHours < 24) return `${diffInHours}h atras`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d atras`;
+  };
 
-    if (diffInHours < 1) {
-      return "Agora mesmo";
-    } else if (diffInHours < 24) {
-      return `${diffInHours}h atrás`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${diffInDays}d atrás`;
-    }
+  const handleNavigate = (actionUrl?: string | null) => {
+    if (!actionUrl) return;
+    setIsOpen(false);
+    navigate(actionUrl);
   };
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
+        <Button variant="ghost" size="sm" className="relative" onClick={fetchNotifications}>
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 hover:bg-red-600">
@@ -136,13 +143,14 @@ export function NotificationCenter() {
         <Card className="border-0 shadow-lg">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Notificações</CardTitle>
+              <CardTitle className="text-lg">Notificacoes</CardTitle>
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={markAllAsRead}
                   className="text-xs"
+                  disabled={loading}
                 >
                   Marcar todas como lidas
                 </Button>
@@ -150,7 +158,7 @@ export function NotificationCenter() {
             </div>
             {unreadCount > 0 && (
               <CardDescription>
-                {unreadCount} notificação{unreadCount > 1 ? "ões" : ""} não lida
+                {unreadCount} notificacao{unreadCount > 1 ? "es" : ""} nao lida
                 {unreadCount > 1 ? "s" : ""}
               </CardDescription>
             )}
@@ -160,7 +168,7 @@ export function NotificationCenter() {
               {notifications.length === 0 ? (
                 <div className="p-6 text-center text-muted-foreground">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Nenhuma notificação</p>
+                  <p>{loading ? "Carregando..." : "Nenhuma notificacao"}</p>
                 </div>
               ) : (
                 notifications.map((notification, index) => (
@@ -171,12 +179,7 @@ export function NotificationCenter() {
                       }`}
                       onClick={() => {
                         markAsRead(notification.id);
-                        if (notification.actionUrl) {
-                          // In a real app, you'd navigate to the URL
-                          toast.info(
-                            `Navegando para: ${notification.actionUrl}`,
-                          );
-                        }
+                        handleNavigate(notification.actionUrl);
                       }}
                     >
                       <div className="flex items-start gap-3">
@@ -233,10 +236,10 @@ export function NotificationCenter() {
                     className="w-full text-sm"
                     onClick={() => {
                       setIsOpen(false);
-                      toast.info("Página de notificações em desenvolvimento");
+                      toast.info("Pagina de notificacoes em desenvolvimento");
                     }}
                   >
-                    Ver todas as notificações
+                    Ver todas as notificacoes
                   </Button>
                 </div>
               </>
