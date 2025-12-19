@@ -8,5 +8,6 @@ export const foldersService = {
   create: (payload: Partial<Folder>) => api.post<Folder>("/api/folders", payload),
   update: (id: string, payload: Partial<Folder>) =>
     api.patch<Folder>(`/api/folders/${id}`, payload),
+  delete: (id: string) => api.delete<{ ok: boolean }>(`/api/folders/${id}`),
   contracts: (id: string) => api.get<Contract[]>(`/api/folders/${id}/contracts`),
 };

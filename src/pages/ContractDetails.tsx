@@ -108,7 +108,7 @@ export default function ContractDetails() {
           })),
         );
       } catch (error: any) {
-        toast.error(error?.message || "Contrato n√£o encontrado");
+        toast.error(error?.message || "Contrato n„o encontrado");
       } finally {
         setIsLoading(false);
       }
@@ -116,28 +116,9 @@ export default function ContractDetails() {
     fetchData();
   }, [id]);
   const fileInfo = contract?.attachments?.[0] || null;
-const fileName = contract?.fileName || fileInfo?.fileName || fileInfo?.name;
-const fileType = contract?.fileType || fileInfo?.fileType;
-const filePath = contract?.filePath || fileInfo?.filePath;
-
-const handleOpenFile = () => {
-  if (!filePath) return;
-  const url = filePath.startsWith("http") ? filePath : `${API_URL}${filePath}`;
-  window.open(url, "_blank", "noopener,noreferrer");
-};
-
-const handleOpenEdit = () => {
-  if (!contract) return;
-  setEditData({
-    name: contract.name,
-    description: contract.description || "",
-    status: contract.status,
-    priority: contract.priority as any,
-    internalResponsible: contract.internalResponsible || "",
-    responsibleEmail: contract.responsibleEmail || "",
-  });
-  setShowEditModal(true);
-};
+  const fileName = contract?.fileName || fileInfo?.fileName || fileInfo?.name;
+  const fileType = contract?.fileType || fileInfo?.fileType;
+  const filePath = contract?.filePath || fileInfo?.filePath;
 
   const persistAttachments = async (nextAttachments: any[]) => {
     if (!contract) return;
@@ -162,7 +143,7 @@ const handleOpenEdit = () => {
         content: newComment.trim(),
       });
       const historyEntry = await contractsService.history.add(contract.id, {
-        action: "Coment√°rio adicionado",
+        action: "Coment·rio adicionado",
         author: created.author,
       });
 
@@ -181,9 +162,9 @@ const handleOpenEdit = () => {
 
       setContract(updatedContract);
       setNewComment("");
-      toast.success("Coment√°rio adicionado com sucesso!");
+      toast.success("Coment·rio adicionado com sucesso!");
     } catch (error: any) {
-      toast.error(error?.message || "Erro ao adicionar coment√°rio");
+      toast.error(error?.message || "Erro ao adicionar coment·rio");
     }
   };
   const handleUploadAttachment = async (
@@ -302,18 +283,18 @@ const handleOpenEdit = () => {
     const recipients = [...selectedRecipients];
     if (externalEmail.trim()) recipients.push(externalEmail.trim());
     if (recipients.length === 0) {
-      toast.error("Selecione ao menos um destinat√°rio");
+      toast.error("Selecione ao menos um destinat·rio");
       return;
     }
     try {
       await contractsService.notifications.add(contract.id, {
         type: "custom",
-        message: notifyMessage || `Notifica√ß√£o sobre ${notifyScope}`,
+        message: notifyMessage || `NotificaÁ„o sobre ${notifyScope}`,
         recipients,
         scheduledFor: new Date(),
       } as any);
       const historyEntry = await contractsService.history.add(contract.id, {
-        action: "Notifica√ß√£o enviada",
+        action: "NotificaÁ„o enviada",
         author: user?.name || "Sistema",
         metadata: { recipients, scope: notifyScope },
       });
@@ -328,13 +309,13 @@ const handleOpenEdit = () => {
             }
           : prev,
       );
-      toast.success("Notifica√ß√£o enviada");
+      toast.success("NotificaÁ„o enviada");
       setShowNotifyModal(false);
       setSelectedRecipients([]);
       setExternalEmail("");
       setNotifyMessage("");
     } catch (err: any) {
-      toast.error(err?.message || "Erro ao enviar notifica√ß√£o");
+      toast.error(err?.message || "Erro ao enviar notificaÁ„o");
     }
   };
   const getInitials = (name: string) => {
@@ -361,9 +342,9 @@ const handleOpenEdit = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Contrato n√£o encontrado</h2>
+          <h2 className="text-2xl font-semibold mb-2">Contrato n„o encontrado</h2>
           <p className="text-muted-foreground mb-4">
-            O contrato solicitado n√£o existe ou foi removido.
+            O contrato solicitado n„o existe ou foi removido.
           </p>
           <Button onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -426,7 +407,7 @@ const handleOpenEdit = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Informa√ß√µes do Contrato
+                  InformaÁıes do Contrato
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -448,7 +429,7 @@ const handleOpenEdit = () => {
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Respons√°vel Interno</p>
+                      <p className="text-sm text-muted-foreground">Respons·vel Interno</p>
                       <p className="font-medium">{contract.internalResponsible}</p>
                       <p className="text-sm text-muted-foreground">{contract.responsibleEmail}</p>
                     </div>
@@ -458,7 +439,7 @@ const handleOpenEdit = () => {
                   <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Data de In√≠cio</p>
+                      <p className="text-sm text-muted-foreground">Data de InÌcio</p>
                       <p className="font-medium">{formatDate(contract.startDate)}</p>
                     </div>
                   </div>
@@ -498,13 +479,13 @@ const handleOpenEdit = () => {
                   Documentos do Contrato
                 </CardTitle>
                 <CardDescription>
-                  Adicione, visualize ou remova documentos; cada a√ß√£o gera hist√≥rico.
+                  Adicione, visualize ou remova documentos; cada aÁ„o gera histÛrico.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">
-                    Fa√ßa upload de PDF/DOC/DOCX ou arraste arquivos.
+                    FaÁa upload de PDF/DOC/DOCX ou arraste arquivos.
                   </p>
                   <div className="flex items-center gap-2">
                     <Input
@@ -537,8 +518,8 @@ const handleOpenEdit = () => {
                           <div>
                             <p className="font-medium">{att.fileName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {att.fileType?.toUpperCase()} ¬ï {att.uploadedAt ? formatDate(att.uploadedAt as any) : "Agora"}
-                              {att.uploadedBy ? ` ¬ï por ${att.uploadedBy}` : ""}
+                              {att.fileType?.toUpperCase()} ï {att.uploadedAt ? formatDate(att.uploadedAt as any) : "Agora"}
+                              {att.uploadedBy ? ` ï por ${att.uploadedBy}` : ""}
                             </p>
                           </div>
                         </div>
@@ -571,16 +552,16 @@ const handleOpenEdit = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Coment√°rios Internos
+                  Coment·rios Internos
                 </CardTitle>
                 <CardDescription>
-                  Adicione observa√ß√µes e notas sobre este contrato
+                  Adicione observaÁıes e notas sobre este contrato
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <Textarea
-                    placeholder="Adicionar coment√°rio..."
+                    placeholder="Adicionar coment·rio..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     className="min-h-[80px]"
@@ -592,7 +573,7 @@ const handleOpenEdit = () => {
                       disabled={!newComment.trim()}
                     >
                       <Send className="h-4 w-4 mr-2" />
-                      Adicionar Coment√°rio
+                      Adicionar Coment·rio
                     </Button>
                   </div>
                 </div>
@@ -600,7 +581,7 @@ const handleOpenEdit = () => {
                 <div className="space-y-4">
                   {contract.comments.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4">
-                      Nenhum coment√°rio ainda. Seja o primeiro a comentar!
+                      Nenhum coment·rio ainda. Seja o primeiro a comentar!
                     </p>
                   ) : (
                     contract.comments.map((comment) => (
@@ -629,7 +610,7 @@ const handleOpenEdit = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">A√ß√µes R√°pidas</CardTitle>
+                <CardTitle className="text-lg">AÁıes R·pidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button className="w-full justify-start" variant="outline" onClick={handleOpenEdit}>
@@ -642,7 +623,7 @@ const handleOpenEdit = () => {
                   onClick={() => setShowNotifyModal(true)}
                 >
                   <Mail className="h-4 w-4 mr-2" />
-                  Notificar Respons√°vel
+                  Notificar Respons·vel
                 </Button>
                 <Button
                   className="w-full justify-start"
@@ -659,7 +640,7 @@ const handleOpenEdit = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
-                  Hist√≥rico
+                  HistÛrico
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -689,7 +670,7 @@ const handleOpenEdit = () => {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Informa√ß√µes Adicionais</CardTitle>
+                <CardTitle className="text-lg">InformaÁıes Adicionais</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
@@ -701,11 +682,11 @@ const handleOpenEdit = () => {
                   <span className="text-sm font-medium">{formatDate(contract.updatedAt)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Coment√°rios:</span>
+                  <span className="text-sm text-muted-foreground">Coment·rios:</span>
                   <span className="text-sm font-medium">{contract.comments.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Hist√≥rico:</span>
+                  <span className="text-sm text-muted-foreground">HistÛrico:</span>
                   <span className="text-sm font-medium">{contract.history.length} eventos</span>
                 </div>
               </CardContent>
@@ -728,7 +709,7 @@ const handleOpenEdit = () => {
                 />
               ) : (
                 <div className="p-4 bg-muted rounded-md text-sm">
-                  Visualiza√ß√£o n√£o dispon√≠vel para este formato. Baixe o arquivo para abrir.
+                  VisualizaÁ„o n„o disponÌvel para este formato. Baixe o arquivo para abrir.
                 </div>
               )}
               <div className="flex justify-end gap-2">
@@ -743,7 +724,7 @@ const handleOpenEdit = () => {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Arquivo n√£o dispon√≠vel para este contrato.
+              Arquivo n„o disponÌvel para este contrato.
             </p>
           )}
         </DialogContent>
@@ -751,9 +732,9 @@ const handleOpenEdit = () => {
       <Dialog open={showNotifyModal} onOpenChange={setShowNotifyModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Notificar respons√°veis</DialogTitle>
+            <DialogTitle>Notificar respons·veis</DialogTitle>
             <DialogDescription>
-              Escolha usu√°rios do sistema ou informe e-mails externos para receberem o aviso.
+              Escolha usu·rios do sistema ou informe e-mails externos para receberem o aviso.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -766,7 +747,7 @@ const handleOpenEdit = () => {
                 <SelectContent>
                   <SelectItem value="contrato">Contrato</SelectItem>
                   <SelectItem value="upload">Upload</SelectItem>
-                  <SelectItem value="informacoes">Informa√ß√µes gerais</SelectItem>
+                  <SelectItem value="informacoes">InformaÁıes gerais</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -779,7 +760,7 @@ const handleOpenEdit = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Selecionar usu√°rios</Label>
+              <Label>Selecionar usu·rios</Label>
               <Select
                 value=""
                 onValueChange={(val) => {
@@ -789,7 +770,7 @@ const handleOpenEdit = () => {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Escolha usu√°rios" />
+                  <SelectValue placeholder="Escolha usu·rios" />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((u) => (
@@ -822,7 +803,7 @@ const handleOpenEdit = () => {
             <Button variant="outline" onClick={() => setShowNotifyModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSendNotification}>Enviar notifica√ß√£o</Button>
+            <Button onClick={handleSendNotification}>Enviar notificaÁ„o</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -831,7 +812,7 @@ const handleOpenEdit = () => {
           <DialogHeader>
             <DialogTitle>Editar contrato</DialogTitle>
             <DialogDescription>
-              Atualize os dados principais. Altera√ß√µes s√£o registradas no hist√≥rico.
+              Atualize os dados principais. AlteraÁıes s„o registradas no histÛrico.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -843,7 +824,7 @@ const handleOpenEdit = () => {
               />
             </div>
             <div className="space-y-1">
-              <Label>Descri√ß√£o</Label>
+              <Label>DescriÁ„o</Label>
               <Textarea
                 value={editData.description}
                 onChange={(e) => setEditData((p) => ({ ...p, description: e.target.value }))}
@@ -879,22 +860,22 @@ const handleOpenEdit = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Baixa</SelectItem>
-                    <SelectItem value="medium">M√©dia</SelectItem>
+                    <SelectItem value="medium">MÈdia</SelectItem>
                     <SelectItem value="high">Alta</SelectItem>
-                    <SelectItem value="critical">Cr√≠tica</SelectItem>
+                    <SelectItem value="critical">CrÌtica</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Respons√°vel interno</Label>
+              <Label>Respons·vel interno</Label>
               <Input
                 value={editData.internalResponsible}
                 onChange={(e) => setEditData((p) => ({ ...p, internalResponsible: e.target.value }))}
               />
             </div>
             <div className="space-y-1">
-              <Label>E-mail do respons√°vel</Label>
+              <Label>E-mail do respons·vel</Label>
               <Input
                 value={editData.responsibleEmail}
                 onChange={(e) => setEditData((p) => ({ ...p, responsibleEmail: e.target.value }))}
@@ -905,7 +886,7 @@ const handleOpenEdit = () => {
             <Button variant="outline" onClick={() => setShowEditModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEdit}>Salvar altera√ß√µes</Button>
+            <Button onClick={handleSaveEdit}>Salvar alteraÁıes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
