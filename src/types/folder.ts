@@ -1,3 +1,5 @@
+import { UserRole } from "./auth";
+
 export interface Folder {
   id: string;
   name: string;
@@ -21,6 +23,9 @@ export interface FolderPermissions {
   canView: string[]; // user IDs
   canEdit: string[]; // user IDs
   canManage: string[]; // user IDs
+  viewRoles?: UserRole[];
+  editRoles?: UserRole[];
+  manageRoles?: UserRole[];
   isPublic: boolean;
 }
 
