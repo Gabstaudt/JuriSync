@@ -18,6 +18,7 @@ import {
   Plus,
   X,
   MessageSquare,
+  Building2,
 } from "lucide-react";
 import { chatService } from "@/lib/services/chat";
 
@@ -75,6 +76,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "Chat",
       icon: MessageSquare,
       href: "/chat",
+      badge: null,
+    },
+    {
+      label: "Empresas e Partes",
+      icon: Building2,
+      href: "/companies",
       badge: null,
     },
     {

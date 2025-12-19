@@ -60,6 +60,8 @@ import { toast } from "sonner";
 import { contractsService } from "@/lib/services/contracts";
 import { foldersService } from "@/lib/services/folders";
 import { usersService } from "@/lib/services/users";
+import { companiesService, partiesService } from "@/lib/services/companies";
+import { Company, Party } from "@/types/company";
 
 export default function NewContract() {
   const navigate = useNavigate();
@@ -78,6 +80,12 @@ export default function NewContract() {
     filePath: string;
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [parties, setParties] = useState<Party[]>([]);
+  const [showNewCompanyDialog, setShowNewCompanyDialog] = useState(false);
+  const [showNewPartyDialog, setShowNewPartyDialog] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: "", cnpj: "", email: "", phone: "" });
+  const [newParty, setNewParty] = useState({ name: "", role: "", email: "", phone: "", companyId: "" });
   const [formData, setFormData] = useState<CreateContractData>({
     name: "",
     description: "",
@@ -104,9 +112,11 @@ export default function NewContract() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [folderData, userData] = await Promise.all([
+        const [folderData, userData, companyData, partyData] = await Promise.all([
           foldersService.list(),
           usersService.list(),
+          companiesService.list(),
+          partiesService.list(),
         ]);
         setFolders(
           folderData
@@ -124,6 +134,8 @@ export default function NewContract() {
             updatedAt: new Date(u.updatedAt),
           })),
         );
+        setCompanies(companyData);
+        setParties(partyData);
       } catch (error: any) {
         toast.error(error?.message || "Erro ao carregar dados");
       }
@@ -290,6 +302,43 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
   };
 
+  const handleCreateCompanyInline = async () => {
+    if (!newCompany.name.trim()) return toast.error("Nome da empresa é obrigatório");
+    try {
+      const created = await companiesService.create(newCompany);
+      setCompanies((prev) => [created, ...prev]);
+      updateFormData("contractingCompany", created.name);
+      setNewCompany({ name: "", cnpj: "", email: "", phone: "" });
+      setShowNewCompanyDialog(false);
+      toast.success("Empresa criada");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar empresa");
+    }
+  };
+
+  const handleCreatePartyInline = async () => {
+    if (!newParty.name.trim() || !newParty.role.trim()) {
+      toast.error("Nome e papel da parte são obrigatórios");
+      return;
+    }
+    try {
+      const created = await partiesService.create({
+        name: newParty.name,
+        role: newParty.role,
+        email: newParty.email,
+        phone: newParty.phone,
+        companyId: newParty.companyId || null,
+      });
+      setParties((prev) => [created, ...prev]);
+      updateFormData("contractedParty", created.name);
+      setNewParty({ name: "", role: "", email: "", phone: "", companyId: "" });
+      setShowNewPartyDialog(false);
+      toast.success("Parte criada");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar parte");
+    }
+  };
+
 
   const handlePermissionChange = (
     userId: string,
@@ -368,46 +417,56 @@ const handleSubmit = async (e: React.FormEvent) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contractingCompany">
-                    Empresa Contratante *
-                  </Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="contractingCompany"
-                      placeholder="Nome da empresa contratante"
+                  <Label htmlFor="contractingCompany">Empresa Contratante *</Label>
+                  <div className="flex gap-2">
+                    <Select
                       value={formData.contractingCompany}
-                      onChange={(e) =>
-                        updateFormData("contractingCompany", e.target.value)
-                      }
-                      className={`pl-10 ${errors.contractingCompany ? "border-red-500" : ""}`}
-                    />
+                      onValueChange={(val) => updateFormData("contractingCompany", val)}
+                    >
+                      <SelectTrigger className={errors.contractingCompany ? "border-red-500 flex-1" : "flex-1"}>
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={() => setShowNewCompanyDialog(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
                   {errors.contractingCompany && (
-                    <p className="text-sm text-red-600">
-                      {errors.contractingCompany}
-                    </p>
+                    <p className="text-sm text-red-600">{errors.contractingCompany}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="contractedParty">Parte Contratada *</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="contractedParty"
-                      placeholder="Nome da parte contratada"
+                  <div className="flex gap-2">
+                    <Select
                       value={formData.contractedParty}
-                      onChange={(e) =>
-                        updateFormData("contractedParty", e.target.value)
-                      }
-                      className={`pl-10 ${errors.contractedParty ? "border-red-500" : ""}`}
-                    />
+                      onValueChange={(val) => updateFormData("contractedParty", val)}
+                    >
+                      <SelectTrigger className={errors.contractedParty ? "border-red-500 flex-1" : "flex-1"}>
+                        <SelectValue placeholder="Selecione a parte" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {parties.map((p) => (
+                          <SelectItem key={p.id} value={p.name}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={() => setShowNewPartyDialog(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
                   {errors.contractedParty && (
-                    <p className="text-sm text-red-600">
-                      {errors.contractedParty}
-                    </p>
+                    <p className="text-sm text-red-600">{errors.contractedParty}</p>
                   )}
                 </div>
               </div>
@@ -1074,6 +1133,84 @@ const handleSubmit = async (e: React.FormEvent) => {
           </div>
         </form>
       </div>
+      <Dialog open={showNewCompanyDialog} onOpenChange={setShowNewCompanyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova empresa</DialogTitle>
+            <DialogDescription>Cadastre rapidamente e continue o contrato.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="Nome da empresa"
+              value={newCompany.name}
+              onChange={(e) => setNewCompany((p) => ({ ...p, name: e.target.value }))}
+            />
+            <Input
+              placeholder="CNPJ"
+              value={newCompany.cnpj}
+              onChange={(e) => setNewCompany((p) => ({ ...p, cnpj: e.target.value }))}
+            />
+            <Input
+              placeholder="E-mail"
+              value={newCompany.email}
+              onChange={(e) => setNewCompany((p) => ({ ...p, email: e.target.value }))}
+            />
+            <Input
+              placeholder="Telefone"
+              value={newCompany.phone}
+              onChange={(e) => setNewCompany((p) => ({ ...p, phone: e.target.value }))}
+            />
+            <Button onClick={handleCreateCompanyInline}>Salvar empresa</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewPartyDialog} onOpenChange={setShowNewPartyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova parte</DialogTitle>
+            <DialogDescription>Cadastre rapidamente e continue o contrato.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="Nome da parte"
+              value={newParty.name}
+              onChange={(e) => setNewParty((p) => ({ ...p, name: e.target.value }))}
+            />
+            <Input
+              placeholder="Papel (ex: Representante)"
+              value={newParty.role}
+              onChange={(e) => setNewParty((p) => ({ ...p, role: e.target.value }))}
+            />
+            <Input
+              placeholder="E-mail"
+              value={newParty.email}
+              onChange={(e) => setNewParty((p) => ({ ...p, email: e.target.value }))}
+            />
+            <Input
+              placeholder="Telefone"
+              value={newParty.phone}
+              onChange={(e) => setNewParty((p) => ({ ...p, phone: e.target.value }))}
+            />
+            <Select
+              value={newParty.companyId}
+              onValueChange={(val) => setNewParty((p) => ({ ...p, companyId: val }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Vincular empresa (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleCreatePartyInline}>Salvar parte</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
