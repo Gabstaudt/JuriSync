@@ -86,6 +86,8 @@ export default function NewContract() {
   const [showNewPartyDialog, setShowNewPartyDialog] = useState(false);
   const [newCompany, setNewCompany] = useState({ name: "", cnpj: "", email: "", phone: "" });
   const [newParty, setNewParty] = useState({ name: "", role: "", email: "", phone: "", companyId: "" });
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [selectedParties, setSelectedParties] = useState<string[]>([]);
   const [formData, setFormData] = useState<CreateContractData>({
     name: "",
     description: "",
@@ -148,10 +150,10 @@ export default function NewContract() {
 
     if (!formData.name.trim())
       newErrors.name = "Nome do contrato é obrigatório";
-    if (!formData.contractingCompany.trim())
-      newErrors.contractingCompany = "Empresa contratante é obrigatória";
-    if (!formData.contractedParty.trim())
-      newErrors.contractedParty = "Parte contratada é obrigatória";
+    if (selectedCompanies.length === 0)
+      newErrors.contractingCompany = "Pelo menos uma empresa contratante é obrigatória";
+    if (selectedParties.length === 0)
+      newErrors.contractedParty = "Pelo menos uma parte contratada é obrigatória";
     if (!formData.internalResponsible.trim())
       newErrors.internalResponsible = "Responsável interno é obrigatório";
     if (!formData.responsibleEmail.trim())
@@ -207,8 +209,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       await contractsService.create({
         name: formData.name,
         description: formData.description,
-        contractingCompany: formData.contractingCompany,
-        contractedParty: formData.contractedParty,
+        contractingCompany: selectedCompanies.join(", "),
+        contractedParty: selectedParties.join(", "),
         startDate: formData.startDate,
         endDate: formData.endDate,
         value: formData.value,
@@ -307,7 +309,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     try {
       const created = await companiesService.create(newCompany);
       setCompanies((prev) => [created, ...prev]);
-      updateFormData("contractingCompany", created.name);
+      addCompanyToSelection(created.name);
       setNewCompany({ name: "", cnpj: "", email: "", phone: "" });
       setShowNewCompanyDialog(false);
       toast.success("Empresa criada");
@@ -330,7 +332,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         companyId: newParty.companyId || null,
       });
       setParties((prev) => [created, ...prev]);
-      updateFormData("contractedParty", created.name);
+      addPartyToSelection(created.name);
       setNewParty({ name: "", role: "", email: "", phone: "", companyId: "" });
       setShowNewPartyDialog(false);
       toast.success("Parte criada");
@@ -358,6 +360,26 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   const getSelectedFolder = () => {
     return folders.find((f) => f.id === formData.folderId);
+  };
+
+  const addCompanyToSelection = (name: string) => {
+    if (!name) return;
+    setSelectedCompanies((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    updateFormData("contractingCompany", name);
+  };
+
+  const removeCompanyFromSelection = (name: string) => {
+    setSelectedCompanies((prev) => prev.filter((c) => c !== name));
+  };
+
+  const addPartyToSelection = (name: string) => {
+    if (!name) return;
+    setSelectedParties((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    updateFormData("contractedParty", name);
+  };
+
+  const removePartyFromSelection = (name: string) => {
+    setSelectedParties((prev) => prev.filter((c) => c !== name));
   };
 
   return (
@@ -420,8 +442,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <Label htmlFor="contractingCompany">Empresa Contratante *</Label>
                   <div className="flex gap-2">
                     <Select
-                      value={formData.contractingCompany}
-                      onValueChange={(val) => updateFormData("contractingCompany", val)}
+                      onValueChange={(val) => addCompanyToSelection(val)}
                     >
                       <SelectTrigger className={errors.contractingCompany ? "border-red-500 flex-1" : "flex-1"}>
                         <SelectValue placeholder="Selecione a empresa" />
@@ -438,6 +459,18 @@ const handleSubmit = async (e: React.FormEvent) => {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
+                  {selectedCompanies.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCompanies.map((name) => (
+                        <Badge key={name} variant="secondary" className="flex items-center gap-1">
+                          {name}
+                          <button type="button" onClick={() => removeCompanyFromSelection(name)}>
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   {errors.contractingCompany && (
                     <p className="text-sm text-red-600">{errors.contractingCompany}</p>
                   )}
@@ -447,8 +480,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <Label htmlFor="contractedParty">Parte Contratada *</Label>
                   <div className="flex gap-2">
                     <Select
-                      value={formData.contractedParty}
-                      onValueChange={(val) => updateFormData("contractedParty", val)}
+                      onValueChange={(val) => addPartyToSelection(val)}
                     >
                       <SelectTrigger className={errors.contractedParty ? "border-red-500 flex-1" : "flex-1"}>
                         <SelectValue placeholder="Selecione a parte" />
@@ -465,6 +497,18 @@ const handleSubmit = async (e: React.FormEvent) => {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
+                  {selectedParties.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedParties.map((name) => (
+                        <Badge key={name} variant="secondary" className="flex items-center gap-1">
+                          {name}
+                          <button type="button" onClick={() => removePartyFromSelection(name)}>
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   {errors.contractedParty && (
                     <p className="text-sm text-red-600">{errors.contractedParty}</p>
                   )}
