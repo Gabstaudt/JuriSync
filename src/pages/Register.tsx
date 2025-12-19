@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { RegisterData } from "@/types/auth";
+import { RegisterData, UserRole } from "@/types/auth";
 import {
   Card,
   CardContent,
@@ -25,6 +25,7 @@ import {
   Phone,
   Key,
   ArrowLeft,
+  Shield,
 } from "lucide-react";
 
 export default function Register() {
@@ -34,7 +35,9 @@ export default function Register() {
     name: "",
     email: "",
     password: "",
-    inviteCode: "",
+    role: "user",
+    accessCode: "",
+    ecosystemName: "",
     department: "",
     phone: "",
   });
@@ -42,14 +45,20 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isFirstAdmin, setIsFirstAdmin] = useState(false);
+
+  // Se trocar de perfil para não-admin, desmarca "primeiro admin"
+  useEffect(() => {
+    if (formData.role !== "admin" && isFirstAdmin) {
+      setIsFirstAdmin(false);
+    }
+  }, [formData.role, isFirstAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
-    // Validation
     const newErrors: Record<string, string> = {};
-
     if (!formData.name.trim()) newErrors.name = "Nome é obrigatório";
     if (!formData.email.trim()) newErrors.email = "E-mail é obrigatório";
     if (!formData.password) newErrors.password = "Senha é obrigatória";
@@ -57,10 +66,17 @@ export default function Register() {
       newErrors.password = "Senha deve ter pelo menos 6 caracteres";
     if (formData.password !== confirmPassword)
       newErrors.confirmPassword = "Senhas não coincidem";
-    if (!formData.inviteCode.trim())
-      newErrors.inviteCode = "Código de convite é obrigatório";
 
-    // Email validation
+    // access code required for todos, exceto primeiro admin
+    const isFirstAdminFlow = isFirstAdmin && formData.role === "admin";
+    const requiresCode = !isFirstAdminFlow;
+    if (requiresCode && !formData.accessCode?.trim()) {
+      newErrors.accessCode = "Código de acesso é obrigatório";
+    }
+    if (isFirstAdminFlow && !formData.ecosystemName.trim()) {
+      newErrors.ecosystemName = "Nome do ecossistema é obrigatório para o primeiro admin";
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
       newErrors.email = "E-mail inválido";
@@ -71,7 +87,12 @@ export default function Register() {
       return;
     }
 
-    const success = await register(formData);
+    const payload: RegisterData = {
+      ...formData,
+      accessCode: requiresCode ? formData.accessCode : "",
+    };
+
+    const success = await register({ ...payload, isFirstAdmin: isFirstAdminFlow });
     if (success) {
       navigate("/dashboard");
     }
@@ -79,10 +100,7 @@ export default function Register() {
 
   const handleInputChange = (field: keyof RegisterData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   return (
@@ -110,7 +128,7 @@ export default function Register() {
               Criar Conta no JuriSync
             </CardTitle>
             <CardDescription className="text-center">
-              Preencha os dados abaixo para criar sua conta
+              Escolha seu perfil e use o código de acesso do seu ecossistema
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -119,42 +137,37 @@ export default function Register() {
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo *</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="name"
-                      type="text"
-                      placeholder="Seu nome completo"
+                      placeholder="Digite seu nome"
                       value={formData.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      className={`pl-10 ${errors.name ? "border-red-500" : ""}`}
-                      disabled={isLoading}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
                     />
+                    <User className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
                   </div>
                   {errors.name && (
-                    <p className="text-sm text-red-600">{errors.name}</p>
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.name}</AlertDescription>
+                    </Alert>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail *</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="seu@email.com"
                       value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
-                      disabled={isLoading}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
                     />
+                    <Mail className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
                   </div>
                   {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email}</p>
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.email}</AlertDescription>
+                    </Alert>
                   )}
                 </div>
               </div>
@@ -163,7 +176,6 @@ export default function Register() {
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
@@ -172,14 +184,11 @@ export default function Register() {
                       onChange={(e) =>
                         handleInputChange("password", e.target.value)
                       }
-                      className={`pl-10 pr-10 ${errors.password ? "border-red-500" : ""}`}
-                      disabled={isLoading}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                      disabled={isLoading}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -187,40 +196,29 @@ export default function Register() {
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
+                    <Lock className="h-4 w-4 text-gray-400 absolute right-10 top-3" />
                   </div>
                   {errors.password && (
-                    <p className="text-sm text-red-600">{errors.password}</p>
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.password}</AlertDescription>
+                    </Alert>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="••••••••"
                       value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        if (errors.confirmPassword) {
-                          setErrors((prev) => ({
-                            ...prev,
-                            confirmPassword: "",
-                          }));
-                        }
-                      }}
-                      className={`pl-10 pr-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
-                      disabled={isLoading}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                      disabled={isLoading}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -228,110 +226,145 @@ export default function Register() {
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
+                    <Lock className="h-4 w-4 text-gray-400 absolute right-10 top-3" />
                   </div>
                   {errors.confirmPassword && (
-                    <p className="text-sm text-red-600">
-                      {errors.confirmPassword}
-                    </p>
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {errors.confirmPassword}
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="inviteCode">Código de Convite *</Label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="inviteCode"
-                    type="text"
-                    placeholder="Código fornecido pelo administrador"
-                    value={formData.inviteCode}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Perfil *</Label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    value={formData.role}
                     onChange={(e) =>
-                      handleInputChange(
-                        "inviteCode",
-                        e.target.value.toUpperCase(),
-                      )
+                      handleInputChange("role", e.target.value as UserRole)
                     }
-                    className={`pl-10 ${errors.inviteCode ? "border-red-500" : ""}`}
-                    disabled={isLoading}
-                  />
+                  >
+                    <option value="admin">Administrador</option>
+                    <option value="manager">Gerente</option>
+                    <option value="user">Usuário</option>
+                  </select>
                 </div>
-                {errors.inviteCode && (
-                  <p className="text-sm text-red-600">{errors.inviteCode}</p>
-                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="accessCode">Código de Acesso *</Label>
+                  <div className="relative">
+                    <Input
+                      id="accessCode"
+                      placeholder="Digite o código fornecido"
+                      value={formData.accessCode}
+                      onChange={(e) =>
+                        handleInputChange("accessCode", e.target.value)
+                      }
+                      disabled={isFirstAdmin && formData.role === "admin"}
+                    />
+                    <Key className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                  </div>
+                  {errors.accessCode && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.accessCode}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={isFirstAdmin && formData.role === "admin"}
+                      onChange={(e) => {
+                        if (formData.role !== "admin") return;
+                        setIsFirstAdmin(e.target.checked);
+                        if (e.target.checked) {
+                          setFormData((prev) => ({ ...prev, accessCode: "" }));
+                        }
+                      }}
+                    />
+                    <span>Sou o primeiro administrador (sem código)</span>
+                  </div>
+                </div>
               </div>
+
+              {isFirstAdmin && formData.role === "admin" && (
+                <div className="space-y-2">
+                  <Label htmlFor="ecosystemName">Nome do Ecossistema *</Label>
+                  <div className="relative">
+                    <Input
+                      id="ecosystemName"
+                      placeholder="Ex.: Ecosystem Jurídico"
+                      value={formData.ecosystemName}
+                      onChange={(e) =>
+                        handleInputChange("ecosystemName", e.target.value)
+                      }
+                    />
+                    <Shield className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                  </div>
+                  {errors.ecosystemName && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.ecosystemName}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="department">Departamento</Label>
                   <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="department"
-                      type="text"
-                      placeholder="Ex: Jurídico, Financeiro"
+                      placeholder="Jurídico, Operações..."
                       value={formData.department}
                       onChange={(e) =>
                         handleInputChange("department", e.target.value)
                       }
-                      className="pl-10"
-                      disabled={isLoading}
                     />
+                    <Building className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="phone"
-                      type="tel"
-                      placeholder="+55 (11) 99999-9999"
+                      placeholder="(99) 99999-9999"
                       value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      className="pl-10"
-                      disabled={isLoading}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
                     />
+                    <Phone className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
                   </div>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full h-11 text-sm font-semibold"
+                disabled={isLoading}
+              >
                 {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Criando conta...
-                  </>
+                  </div>
                 ) : (
                   "Criar Conta"
                 )}
               </Button>
-            </form>
 
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <div className="text-center text-sm text-gray-600">
                 Já tem uma conta?{" "}
-                <Link
-                  to="/login"
-                  className="text-blue-600 hover:underline font-medium"
-                >
-                  Entrar
+                <Link to="/login" className="text-blue-600 hover:text-blue-800">
+                  Acesse aqui
                 </Link>
-              </p>
-            </div>
+              </div>
+            </form>
           </CardContent>
         </Card>
-
-        {/* Demo info */}
-        <Alert className="mt-6">
-          <Key className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Para demonstração, use o código:</strong> JURISYNC2024
-          </AlertDescription>
-        </Alert>
       </div>
     </div>
   );

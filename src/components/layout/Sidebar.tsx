@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,10 @@ import {
   Shield,
   Plus,
   X,
+  MessageSquare,
+  Building2,
 } from "lucide-react";
+import { chatService } from "@/lib/services/chat";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -27,6 +31,27 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [unreadChat, setUnreadChat] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const fetchUnread = async () => {
+      try {
+        const convs = await chatService.listConversations();
+        if (!active) return;
+        const total = convs.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+        setUnreadChat(total);
+      } catch {
+        // silencioso
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const menuItems = [
     {
@@ -45,6 +70,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "Pastas",
       icon: FolderOpen,
       href: "/folders",
+      badge: null,
+    },
+    {
+      label: "Chat",
+      icon: MessageSquare,
+      href: "/chat",
+      badge: null,
+    },
+    {
+      label: "Empresas e Partes",
+      icon: Building2,
+      href: "/companies",
       badge: null,
     },
     {
@@ -114,13 +151,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-white" />
+              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white font-semibold">
+                JS
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  JuriSync
-                </h2>
+              <div className="flex flex-col leading-tight">
+                <h2 className="text-lg font-semibold text-gray-900">JuriSync</h2>
+                <span className="text-xs text-gray-500">Ecossistema</span>
               </div>
             </div>
             <Button
@@ -200,6 +236,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 return null;
               }
 
+              const isChat = item.label === "Chat";
               return (
                 <Button
                   key={item.href}
@@ -213,7 +250,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 >
                   <item.icon className="mr-3 h-4 w-4" />
                   {item.label}
-                  {item.badge && (
+                  {isChat && unreadChat > 0 && (
+                    <Badge variant="destructive" className="ml-auto text-[11px]">
+                      {unreadChat}
+                    </Badge>
+                  )}
+                  {item.badge && !isChat && (
                     <Badge variant="secondary" className="ml-auto text-xs">
                       {item.badge}
                     </Badge>

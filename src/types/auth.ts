@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  ecosystemId?: string;
   name: string;
   email: string;
   avatar?: string;
@@ -12,6 +13,21 @@ export interface User {
   lastLoginAt?: Date;
   inviteCode?: string;
   invitedBy?: string;
+}
+
+// Representação recebida da API (datas podem vir como string)
+export interface PublicUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  department?: string | null;
+  phone?: string | null;
+  inviteCode?: string | null;
+  isActive: boolean;
+  lastLoginAt?: string | Date | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 export type UserRole = "admin" | "manager" | "user";
@@ -31,7 +47,11 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
-  inviteCode: string;
+  inviteCode?: string; // legacy
+  accessCode?: string;
+  role: UserRole;
+  ecosystemName?: string;
+  isFirstAdmin?: boolean;
   department?: string;
   phone?: string;
 }

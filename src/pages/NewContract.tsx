@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CreateContractData, ContractPriority } from "@/types/contract";
 import { Folder } from "@/types/folder";
 import { User } from "@/types/auth";
-import { mockUsers } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
 import {
   Card,
@@ -58,6 +57,11 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { contractsService } from "@/lib/services/contracts";
+import { foldersService } from "@/lib/services/folders";
+import { usersService } from "@/lib/services/users";
+import { companiesService, partiesService } from "@/lib/services/companies";
+import { Company, Party } from "@/types/company";
 
 export default function NewContract() {
   const navigate = useNavigate();
@@ -69,6 +73,21 @@ export default function NewContract() {
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<{
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    filePath: string;
+  } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [parties, setParties] = useState<Party[]>([]);
+  const [showNewCompanyDialog, setShowNewCompanyDialog] = useState(false);
+  const [showNewPartyDialog, setShowNewPartyDialog] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: "", cnpj: "", email: "", phone: "" });
+  const [newParty, setNewParty] = useState({ name: "", role: "", email: "", phone: "", companyId: "" });
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [selectedParties, setSelectedParties] = useState<string[]>([]);
   const [formData, setFormData] = useState<CreateContractData>({
     name: "",
     description: "",
@@ -93,19 +112,37 @@ export default function NewContract() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Load folders and users
-    const storedFolders = localStorage.getItem("jurisync_folders");
-    if (storedFolders) {
+    const fetchData = async () => {
       try {
-        const parsed = JSON.parse(storedFolders);
-        setFolders(parsed.filter((f: Folder) => f.type === "custom"));
-      } catch {
-        setFolders([]);
+        const [folderData, userData, companyData, partyData] = await Promise.all([
+          foldersService.list(),
+          usersService.list(),
+          companiesService.list(),
+          partiesService.list(),
+        ]);
+        setFolders(
+          folderData
+            .filter((f) => f.type === "custom")
+            .map((f) => ({
+              ...f,
+              createdAt: new Date(f.createdAt),
+              updatedAt: new Date(f.updatedAt),
+            })),
+        );
+        setUsers(
+          userData.map((u) => ({
+            ...u,
+            createdAt: new Date(u.createdAt),
+            updatedAt: new Date(u.updatedAt),
+          })),
+        );
+        setCompanies(companyData);
+        setParties(partyData);
+      } catch (error: any) {
+        toast.error(error?.message || "Erro ao carregar dados");
       }
-    }
-
-    // Use mock users for now
-    setUsers(mockUsers);
+    };
+    fetchData();
   }, []);
 
   const validateForm = () => {
@@ -113,10 +150,10 @@ export default function NewContract() {
 
     if (!formData.name.trim())
       newErrors.name = "Nome do contrato é obrigatório";
-    if (!formData.contractingCompany.trim())
-      newErrors.contractingCompany = "Empresa contratante é obrigatória";
-    if (!formData.contractedParty.trim())
-      newErrors.contractedParty = "Parte contratada é obrigatória";
+    if (selectedCompanies.length === 0)
+      newErrors.contractingCompany = "Pelo menos uma empresa contratante é obrigatória";
+    if (selectedParties.length === 0)
+      newErrors.contractedParty = "Pelo menos uma parte contratada é obrigatória";
     if (!formData.internalResponsible.trim())
       newErrors.internalResponsible = "Responsável interno é obrigatório";
     if (!formData.responsibleEmail.trim())
@@ -139,7 +176,26 @@ export default function NewContract() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.match(/\.(pdf|doc|docx)$/i)) {
+      toast.error("Apenas PDF, DOC ou DOCX s?o permitidos");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const uploaded = await contractsService.upload(file);
+      setUploadedFile(uploaded);
+      toast.success("Arquivo enviado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao enviar arquivo");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -150,72 +206,44 @@ export default function NewContract() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Create contract object
-      const newContract = {
-        id: crypto.randomUUID(),
-        ...formData,
+      await contractsService.create({
+        name: formData.name,
+        description: formData.description,
+        contractingCompany: selectedCompanies.join(", "),
+        contractedParty: selectedParties.join(", "),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        value: formData.value,
+        internalResponsible: formData.internalResponsible,
+        responsibleEmail: formData.responsibleEmail,
         folderId: addToFolder ? formData.folderId : undefined,
-        folderPath:
-          addToFolder && formData.folderId
-            ? [getSelectedFolder()?.name || ""]
-            : undefined,
-        status: "active" as const,
-        createdBy: user?.id || "",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        comments: [],
-        history: [
-          {
-            id: crypto.randomUUID(),
-            contractId: "",
-            action: "Contrato criado",
-            author: user?.name || "Sistema",
-            authorId: user?.id || "",
-            timestamp: new Date(),
-          },
-        ],
-        attachments: [],
-        notifications: [],
-        isArchived: false,
-      };
-
-      // Save to localStorage (in production, this would be an API call)
-      const existingContracts = JSON.parse(
-        localStorage.getItem("jurisync_contracts") || "[]",
-      );
-      const updatedContracts = [...existingContracts, newContract];
-      localStorage.setItem(
-        "jurisync_contracts",
-        JSON.stringify(updatedContracts),
-      );
-
-      // Update folder contract count if adding to folder
-      if (addToFolder && formData.folderId) {
-        const existingFolders = JSON.parse(
-          localStorage.getItem("jurisync_folders") || "[]",
-        );
-        const updatedFolders = existingFolders.map((f: Folder) =>
-          f.id === formData.folderId
-            ? {
-                ...f,
-                contractCount: f.contractCount + 1,
-                updatedAt: new Date(),
-              }
-            : f,
-        );
-        localStorage.setItem(
-          "jurisync_folders",
-          JSON.stringify(updatedFolders),
-        );
-      }
-
+        tags: formData.tags,
+        priority: formData.priority,
+        permissions: formData.permissions,
+        attachments: uploadedFile
+          ? [
+              {
+                id: crypto.randomUUID(),
+                contractId: "",
+                name: uploadedFile.fileName,
+                fileName: uploadedFile.fileName,
+                fileType: uploadedFile.fileType,
+                fileSize: uploadedFile.fileSize,
+                uploadedBy: user?.id || "",
+                uploadedAt: new Date(),
+                filePath: uploadedFile.filePath,
+              },
+            ]
+          : [],
+        fileName: uploadedFile?.fileName,
+        filePath: uploadedFile?.filePath,
+        fileType: uploadedFile?.fileType as any,
+        status: "active",
+      });
       toast.success("Contrato criado com sucesso!");
       navigate("/contracts");
     } catch (error) {
-      toast.error("Erro ao criar contrato");
+      toast.error((error as any)?.message || "Erro ao criar contrato");
     } finally {
       setIsLoading(false);
     }
@@ -248,44 +276,71 @@ export default function NewContract() {
 
   const handleCreateNewFolder = async () => {
     if (!newFolderName.trim()) {
-      toast.error("Nome da pasta é obrigatório");
+      toast.error("Nome da pasta e obrigatorio");
       return;
     }
 
-    const newFolder: Folder = {
-      id: crypto.randomUUID(),
-      name: newFolderName,
-      description: `Pasta criada durante criação do contrato "${formData.name}"`,
-      color: "#3B82F6",
-      icon: "FolderOpen",
-      path: [],
-      type: "custom",
-      createdBy: user?.id || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      contractCount: 0,
-      isActive: true,
-      permissions: {
-        canView: [],
-        canEdit: [],
-        canManage: [],
-        isPublic: true,
-      },
-    };
-
-    // Save folder
-    const existingFolders = JSON.parse(
-      localStorage.getItem("jurisync_folders") || "[]",
-    );
-    const updatedFolders = [...existingFolders, newFolder];
-    localStorage.setItem("jurisync_folders", JSON.stringify(updatedFolders));
-
-    setFolders((prev) => [...prev, newFolder]);
-    setFormData((prev) => ({ ...prev, folderId: newFolder.id }));
-    setNewFolderName("");
-    setShowNewFolderDialog(false);
-    toast.success("Pasta criada com sucesso!");
+    try {
+      const created = await foldersService.create({
+        name: newFolderName,
+        description: `Pasta criada durante criacao do contrato "${formData.name || newFolderName}"`,
+        color: "#3B82F6",
+        icon: "FolderOpen",
+        type: "custom",
+        permissions: {
+          canView: [],
+          canEdit: [],
+          canManage: [],
+          isPublic: true,
+        },
+      });
+      setFolders((prev) => [...prev, created]);
+      setFormData((prev) => ({ ...prev, folderId: created.id }));
+      setNewFolderName("");
+      setShowNewFolderDialog(false);
+      toast.success("Pasta criada com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao criar pasta");
+    }
   };
+
+  const handleCreateCompanyInline = async () => {
+    if (!newCompany.name.trim()) return toast.error("Nome da empresa é obrigatório");
+    try {
+      const created = await companiesService.create(newCompany);
+      setCompanies((prev) => [created, ...prev]);
+      addCompanyToSelection(created.name);
+      setNewCompany({ name: "", cnpj: "", email: "", phone: "" });
+      setShowNewCompanyDialog(false);
+      toast.success("Empresa criada");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar empresa");
+    }
+  };
+
+  const handleCreatePartyInline = async () => {
+    if (!newParty.name.trim() || !newParty.role.trim()) {
+      toast.error("Nome e papel da parte são obrigatórios");
+      return;
+    }
+    try {
+      const created = await partiesService.create({
+        name: newParty.name,
+        role: newParty.role,
+        email: newParty.email,
+        phone: newParty.phone,
+        companyId: newParty.companyId || null,
+      });
+      setParties((prev) => [created, ...prev]);
+      addPartyToSelection(created.name);
+      setNewParty({ name: "", role: "", email: "", phone: "", companyId: "" });
+      setShowNewPartyDialog(false);
+      toast.success("Parte criada");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar parte");
+    }
+  };
+
 
   const handlePermissionChange = (
     userId: string,
@@ -305,6 +360,26 @@ export default function NewContract() {
 
   const getSelectedFolder = () => {
     return folders.find((f) => f.id === formData.folderId);
+  };
+
+  const addCompanyToSelection = (name: string) => {
+    if (!name) return;
+    setSelectedCompanies((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    updateFormData("contractingCompany", name);
+  };
+
+  const removeCompanyFromSelection = (name: string) => {
+    setSelectedCompanies((prev) => prev.filter((c) => c !== name));
+  };
+
+  const addPartyToSelection = (name: string) => {
+    if (!name) return;
+    setSelectedParties((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    updateFormData("contractedParty", name);
+  };
+
+  const removePartyFromSelection = (name: string) => {
+    setSelectedParties((prev) => prev.filter((c) => c !== name));
   };
 
   return (
@@ -364,46 +439,78 @@ export default function NewContract() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contractingCompany">
-                    Empresa Contratante *
-                  </Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="contractingCompany"
-                      placeholder="Nome da empresa contratante"
-                      value={formData.contractingCompany}
-                      onChange={(e) =>
-                        updateFormData("contractingCompany", e.target.value)
-                      }
-                      className={`pl-10 ${errors.contractingCompany ? "border-red-500" : ""}`}
-                    />
+                  <Label htmlFor="contractingCompany">Empresa Contratante *</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      onValueChange={(val) => addCompanyToSelection(val)}
+                    >
+                      <SelectTrigger className={errors.contractingCompany ? "border-red-500 flex-1" : "flex-1"}>
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={() => setShowNewCompanyDialog(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
+                  {selectedCompanies.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCompanies.map((name) => (
+                        <Badge key={name} variant="secondary" className="flex items-center gap-1">
+                          {name}
+                          <button type="button" onClick={() => removeCompanyFromSelection(name)}>
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   {errors.contractingCompany && (
-                    <p className="text-sm text-red-600">
-                      {errors.contractingCompany}
-                    </p>
+                    <p className="text-sm text-red-600">{errors.contractingCompany}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="contractedParty">Parte Contratada *</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="contractedParty"
-                      placeholder="Nome da parte contratada"
-                      value={formData.contractedParty}
-                      onChange={(e) =>
-                        updateFormData("contractedParty", e.target.value)
-                      }
-                      className={`pl-10 ${errors.contractedParty ? "border-red-500" : ""}`}
-                    />
+                  <div className="flex gap-2">
+                    <Select
+                      onValueChange={(val) => addPartyToSelection(val)}
+                    >
+                      <SelectTrigger className={errors.contractedParty ? "border-red-500 flex-1" : "flex-1"}>
+                        <SelectValue placeholder="Selecione a parte" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {parties.map((p) => (
+                          <SelectItem key={p.id} value={p.name}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={() => setShowNewPartyDialog(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
+                  {selectedParties.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedParties.map((name) => (
+                        <Badge key={name} variant="secondary" className="flex items-center gap-1">
+                          {name}
+                          <button type="button" onClick={() => removePartyFromSelection(name)}>
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   {errors.contractedParty && (
-                    <p className="text-sm text-red-600">
-                      {errors.contractedParty}
-                    </p>
+                    <p className="text-sm text-red-600">{errors.contractedParty}</p>
                   )}
                 </div>
               </div>
@@ -529,17 +636,34 @@ export default function NewContract() {
                   <Label htmlFor="internalResponsible">
                     Responsável Interno *
                   </Label>
-                  <Input
-                    id="internalResponsible"
-                    placeholder="Nome do responsável"
+                  <Select
                     value={formData.internalResponsible}
-                    onChange={(e) =>
-                      updateFormData("internalResponsible", e.target.value)
-                    }
-                    className={
-                      errors.internalResponsible ? "border-red-500" : ""
-                    }
-                  />
+                    onValueChange={(val) => {
+                      const selected = users.find(
+                        (u) => u.name === val || u.id === val,
+                      );
+                      const name = selected ? selected.name : val;
+                      const email = selected?.email || "";
+                      updateFormData("internalResponsible", name);
+                      if (email) updateFormData("responsibleEmail", email);
+                    }}
+                  >
+                    <SelectTrigger
+                      id="internalResponsible"
+                      className={
+                        errors.internalResponsible ? "border-red-500" : ""
+                      }
+                    >
+                      <SelectValue placeholder="Selecione o responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.name}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.internalResponsible && (
                     <p className="text-sm text-red-600">
                       {errors.internalResponsible}
@@ -730,7 +854,7 @@ export default function NewContract() {
                 Documentos
               </CardTitle>
               <CardDescription>
-                Adicione documentos relacionados ao contrato
+                Fa?a upload do contrato (PDF/DOC/DOCX) ou arraste para a ?rea
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -738,44 +862,48 @@ export default function NewContract() {
                 <input
                   id="documents"
                   type="file"
-                  multiple
-                  accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png"
+                  accept=".pdf,.doc,.docx"
                   className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 0) {
-                      toast.success(
-                        `${files.length} documento(s) adicionado(s)`,
-                      );
-                    }
-                  }}
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
                 />
-                <label htmlFor="documents" className="cursor-pointer">
-                  <div className="space-y-2">
-                    <FileText className="h-8 w-8 text-gray-400 mx-auto" />
-                    <p className="text-sm text-gray-600">
-                      Clique para selecionar documentos ou arraste arquivos aqui
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      PDF, DOCX, DOC, TXT, JPG, PNG (máx. 10MB cada)
-                    </p>
-                  </div>
+                <label htmlFor="documents" className="cursor-pointer block space-y-2">
+                  <FileText className="h-8 w-8 text-gray-400 mx-auto" />
+                  <p className="text-sm text-gray-600">
+                    Clique para selecionar documentos ou arraste arquivos aqui
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    PDF, DOCX, DOC (m?x. 10MB cada)
+                  </p>
                 </label>
               </div>
 
+              {isUploading && (
+                <p className="text-xs text-muted-foreground">Enviando arquivo...</p>
+              )}
+
+              {uploadedFile && (
+                <div className="flex items-center justify-between border rounded-lg p-3 bg-green-50 border-green-200">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        {uploadedFile.fileName}
+                      </p>
+                      <p className="text-xs text-green-700">
+                        {Math.round(uploadedFile.fileSize / 1024)} KB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="text-xs text-gray-500">
-                <p>
-                  • Você pode adicionar contratos assinados, anexos e documentos
-                  de suporte
-                </p>
-                <p>
-                  • Os documentos serão armazenados com segurança e associados
-                  ao contrato
-                </p>
+                <p>? Apenas um arquivo principal por contrato.</p>
+                <p>? O arquivo fica associado e pode ser baixado na visualiza??o.</p>
               </div>
             </CardContent>
           </Card>
-
           {/* Tags */}
           <Card>
             <CardHeader>
@@ -1049,6 +1177,84 @@ export default function NewContract() {
           </div>
         </form>
       </div>
+      <Dialog open={showNewCompanyDialog} onOpenChange={setShowNewCompanyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova empresa</DialogTitle>
+            <DialogDescription>Cadastre rapidamente e continue o contrato.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="Nome da empresa"
+              value={newCompany.name}
+              onChange={(e) => setNewCompany((p) => ({ ...p, name: e.target.value }))}
+            />
+            <Input
+              placeholder="CNPJ"
+              value={newCompany.cnpj}
+              onChange={(e) => setNewCompany((p) => ({ ...p, cnpj: e.target.value }))}
+            />
+            <Input
+              placeholder="E-mail"
+              value={newCompany.email}
+              onChange={(e) => setNewCompany((p) => ({ ...p, email: e.target.value }))}
+            />
+            <Input
+              placeholder="Telefone"
+              value={newCompany.phone}
+              onChange={(e) => setNewCompany((p) => ({ ...p, phone: e.target.value }))}
+            />
+            <Button onClick={handleCreateCompanyInline}>Salvar empresa</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewPartyDialog} onOpenChange={setShowNewPartyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova parte</DialogTitle>
+            <DialogDescription>Cadastre rapidamente e continue o contrato.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="Nome da parte"
+              value={newParty.name}
+              onChange={(e) => setNewParty((p) => ({ ...p, name: e.target.value }))}
+            />
+            <Input
+              placeholder="Papel (ex: Representante)"
+              value={newParty.role}
+              onChange={(e) => setNewParty((p) => ({ ...p, role: e.target.value }))}
+            />
+            <Input
+              placeholder="E-mail"
+              value={newParty.email}
+              onChange={(e) => setNewParty((p) => ({ ...p, email: e.target.value }))}
+            />
+            <Input
+              placeholder="Telefone"
+              value={newParty.phone}
+              onChange={(e) => setNewParty((p) => ({ ...p, phone: e.target.value }))}
+            />
+            <Select
+              value={newParty.companyId}
+              onValueChange={(val) => setNewParty((p) => ({ ...p, companyId: val }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Vincular empresa (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleCreatePartyInline}>Salvar parte</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

@@ -7,8 +7,8 @@ import {
   CreateFolderData,
   folderColors,
   folderIcons,
-  systemFolders,
 } from "@/types/folder";
+import { foldersService } from "@/lib/services/folders";
 import { Layout } from "@/components/layout/Layout";
 import {
   Card,
@@ -68,69 +68,38 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const getIconComponent = (icon: string) => {
+  const map: Record<string, any> = {
+    FolderOpen,
+    Folder: FolderOpen,
+    MoreHorizontal,
+    Edit,
+    Trash2,
+    Eye,
+    Settings,
+    Users,
+    Archive,
+    Building,
+    Briefcase,
+    Shield,
+    Scale,
+    FileText,
+    Star,
+    Heart,
+    Lock,
+    Globe,
+    Zap,
+  };
+  return map[icon] || FolderOpen;
+};
+
+const getTotalContracts = (folders?: Folder[]) => {
+  const safe = Array.isArray(folders) ? folders : [];
+  return safe.reduce((sum, f) => sum + (f.contractCount || 0), 0);
+};
+
+
 // Mock data for folders
-const mockFolders: Folder[] = [
-  {
-    id: "system-1",
-    name: "Todos os Contratos",
-    description: "Todos os contratos do sistema",
-    color: "#3B82F6",
-    icon: "FolderOpen",
-    path: [],
-    type: "system",
-    createdBy: "system",
-    createdAt: new Date("2024-01-01"),
-    updatedAt: new Date(),
-    contractCount: 12,
-    isActive: true,
-    permissions: { canView: [], canEdit: [], canManage: [], isPublic: true },
-  },
-  {
-    id: "folder-1",
-    name: "Contratos Comerciais",
-    description: "Contratos de vendas e parcerias comerciais",
-    color: "#10B981",
-    icon: "Building",
-    path: [],
-    type: "custom",
-    createdBy: "admin-1",
-    createdAt: new Date("2024-02-01"),
-    updatedAt: new Date(),
-    contractCount: 8,
-    isActive: true,
-    permissions: { canView: [], canEdit: [], canManage: [], isPublic: true },
-  },
-  {
-    id: "folder-2",
-    name: "Contratos Trabalhistas",
-    description: "Contratos de trabalho e CLT",
-    color: "#F59E0B",
-    icon: "Users",
-    path: [],
-    type: "custom",
-    createdBy: "admin-1",
-    createdAt: new Date("2024-02-01"),
-    updatedAt: new Date(),
-    contractCount: 4,
-    isActive: true,
-    permissions: { canView: [], canEdit: [], canManage: [], isPublic: true },
-  },
-  {
-    id: "folder-3",
-    name: "Prestação de Serviços",
-    description: "Contratos de prestação de serviços diversos",
-    color: "#8B5CF6",
-    icon: "Briefcase",
-    path: [],
-    type: "custom",
-    createdBy: "manager-1",
-    createdAt: new Date("2024-02-15"),
-    updatedAt: new Date(),
-    contractCount: 6,
-    isActive: true,
-    permissions: { canView: [], canEdit: [], canManage: [], isPublic: true },
-  },
-];
 
 export default function Folders() {
   const navigate = useNavigate();
@@ -148,101 +117,73 @@ export default function Folders() {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   useEffect(() => {
-    // Load folders from storage or use mock data
-    const storedFolders = localStorage.getItem("jurisync_folders");
-    if (storedFolders) {
+    const fetchFolders = async () => {
       try {
-        const parsed = JSON.parse(storedFolders);
-        setFolders(
-          parsed.map((f: any) => ({
-            ...f,
-            createdAt: new Date(f.createdAt),
-            updatedAt: new Date(f.updatedAt),
-          })),
-        );
-      } catch {
-        setFolders(mockFolders);
+        const data = await foldersService.list();
+        const parsed = Array.isArray(data)
+          ? data.map((f) => ({
+              ...f,
+              createdAt: new Date(f.createdAt),
+              updatedAt: new Date(f.updatedAt),
+            }))
+          : [];
+        setFolders(parsed);
+      } catch (error: any) {
+        toast.error(error?.message || "Erro ao carregar pastas");
       }
-    } else {
-      setFolders(mockFolders);
-    }
+    };
+    fetchFolders();
   }, []);
+
 
   const saveFolders = (updatedFolders: Folder[]) => {
     setFolders(updatedFolders);
-    localStorage.setItem("jurisync_folders", JSON.stringify(updatedFolders));
   };
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     if (!newFolder.name.trim()) {
-      toast.error("Nome da pasta é obrigatório");
+      toast.error("Nome da pasta e obrigatorio");
       return;
     }
 
-    const folder: Folder = {
-      id: crypto.randomUUID(),
-      ...newFolder,
-      path: [],
-      createdBy: user?.id || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      contractCount: 0,
-      isActive: true,
-    };
+    try {
+      const created = await foldersService.create(newFolder);
+      saveFolders([...folders, created]);
 
-    const updatedFolders = [...folders, folder];
-    saveFolders(updatedFolders);
-
-    setNewFolder({
-      name: "",
-      description: "",
-      color: folderColors[0],
-      icon: folderIcons[0],
-      type: "custom",
-      permissions: { canView: [], canEdit: [], canManage: [], isPublic: true },
-    });
-    setShowCreateDialog(false);
-    toast.success("Pasta criada com sucesso!");
+      setNewFolder({
+        name: "",
+        description: "",
+        color: folderColors[0],
+        icon: folderIcons[0],
+        type: "custom",
+        permissions: { canView: [], canEdit: [], canManage: [], isPublic: true },
+      });
+      setShowCreateDialog(false);
+      toast.success("Pasta criada com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao criar pasta");
+    }
   };
 
-  const handleDeleteFolder = (folderId: string) => {
+const handleDeleteFolder = async (folderId: string) => {
     const folder = folders.find((f) => f.id === folderId);
     if (folder?.type === "system") {
-      toast.error("Pastas do sistema não podem ser excluídas");
+      toast.error("Pastas do sistema n?o podem ser exclu?das");
       return;
     }
 
-    const updatedFolders = folders.filter((f) => f.id !== folderId);
-    saveFolders(updatedFolders);
-    toast.success("Pasta excluída com sucesso!");
+    try {
+      const updated = await foldersService.update(folderId, { isActive: false });
+      saveFolders(
+        folders.map((f) => (f.id === folderId ? { ...updated } : f)),
+      );
+      toast.success("Pasta desativada com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao excluir pasta");
+    }
   };
 
-  const getIconComponent = (iconName: string) => {
-    const icons: Record<string, any> = {
-      FolderOpen,
-      Archive,
-      Building,
-      Briefcase,
-      Shield,
-      Scale,
-      FileText,
-      Users,
-      Settings,
-      Star,
-      Heart,
-      Lock,
-      Globe,
-      Zap,
-    };
-    const IconComponent = icons[iconName] || FolderOpen;
-    return IconComponent;
-  };
-
-  const getTotalContracts = () => {
-    return folders.reduce((sum, folder) => sum + folder.contractCount, 0);
-  };
-
-  const handleFolderClick = (folder: Folder) => {
+const handleFolderClick = (folder: Folder) => {
     navigate(`/folders/${folder.id}/contracts`);
   };
 
