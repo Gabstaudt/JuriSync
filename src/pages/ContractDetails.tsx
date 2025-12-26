@@ -1,4 +1,4 @@
-
+Ôªø
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Contract } from "@/types/contract";
@@ -80,7 +80,6 @@ export default function ContractDetails() {
         const c = await contractsService.get(id);
         const comments = await contractsService.comments.list(id);
         const history = await contractsService.history.list(id);
-        const userList = await usersService.list();
         setContract({
           ...c,
           startDate: new Date(c.startDate),
@@ -100,15 +99,23 @@ export default function ContractDetails() {
             timestamp: new Date(h.timestamp),
           })),
         });
-        setUsers(
-          userList.map((u: any) => ({
-            ...u,
-            createdAt: new Date(u.createdAt),
-            updatedAt: new Date(u.updatedAt),
-          })),
-        );
+        try {
+          const userList = await usersService.list();
+          setUsers(
+            userList.map((u: any) => ({
+              ...u,
+              createdAt: new Date(u.createdAt),
+              updatedAt: new Date(u.updatedAt),
+            })),
+          );
+        } catch (userErr: any) {
+          setUsers([]);
+          if (userErr?.message && userErr.message !== "Acesso negado") {
+            console.warn("Falha ao carregar usu√°rios:", userErr.message);
+          }
+        }
       } catch (error: any) {
-        toast.error(error?.message || "Contrato n„o encontrado");
+        toast.error(error?.message || "Contrato n√£o encontrado");
       } finally {
         setIsLoading(false);
       }
@@ -119,6 +126,29 @@ export default function ContractDetails() {
   const fileName = contract?.fileName || fileInfo?.fileName || fileInfo?.name;
   const fileType = contract?.fileType || fileInfo?.fileType;
   const filePath = contract?.filePath || fileInfo?.filePath;
+
+  const handleOpenFile = () => {
+    if (!filePath) return;
+    setShowFileModal(true);
+  };
+
+  const handleDownload = () => {
+    if (!filePath) return;
+    window.open(`${API_URL}${filePath}`, "_blank", "noopener");
+  };
+
+  const handleOpenEdit = () => {
+    if (!contract) return;
+    setEditData({
+      name: contract.name,
+      description: contract.description || "",
+      status: contract.status,
+      priority: contract.priority,
+      internalResponsible: contract.internalResponsible,
+      responsibleEmail: contract.responsibleEmail,
+    });
+    setShowEditModal(true);
+  };
 
   const persistAttachments = async (nextAttachments: any[]) => {
     if (!contract) return;
@@ -143,7 +173,7 @@ export default function ContractDetails() {
         content: newComment.trim(),
       });
       const historyEntry = await contractsService.history.add(contract.id, {
-        action: "Coment·rio adicionado",
+        action: "Coment√°rio adicionado",
         author: created.author,
       });
 
@@ -162,9 +192,9 @@ export default function ContractDetails() {
 
       setContract(updatedContract);
       setNewComment("");
-      toast.success("Coment·rio adicionado com sucesso!");
+      toast.success("Coment√°rio adicionado com sucesso!");
     } catch (error: any) {
-      toast.error(error?.message || "Erro ao adicionar coment·rio");
+      toast.error(error?.message || "Erro ao adicionar coment√°rio");
     }
   };
   const handleUploadAttachment = async (
@@ -283,18 +313,18 @@ export default function ContractDetails() {
     const recipients = [...selectedRecipients];
     if (externalEmail.trim()) recipients.push(externalEmail.trim());
     if (recipients.length === 0) {
-      toast.error("Selecione ao menos um destinat·rio");
+      toast.error("Selecione ao menos um destinat√°rio");
       return;
     }
     try {
       await contractsService.notifications.add(contract.id, {
         type: "custom",
-        message: notifyMessage || `NotificaÁ„o sobre ${notifyScope}`,
+        message: notifyMessage || `Notifica√ß√£o sobre ${notifyScope}`,
         recipients,
         scheduledFor: new Date(),
       } as any);
       const historyEntry = await contractsService.history.add(contract.id, {
-        action: "NotificaÁ„o enviada",
+        action: "Notifica√ß√£o enviada",
         author: user?.name || "Sistema",
         metadata: { recipients, scope: notifyScope },
       });
@@ -309,13 +339,13 @@ export default function ContractDetails() {
             }
           : prev,
       );
-      toast.success("NotificaÁ„o enviada");
+      toast.success("Notifica√ß√£o enviada");
       setShowNotifyModal(false);
       setSelectedRecipients([]);
       setExternalEmail("");
       setNotifyMessage("");
     } catch (err: any) {
-      toast.error(err?.message || "Erro ao enviar notificaÁ„o");
+      toast.error(err?.message || "Erro ao enviar notifica√ß√£o");
     }
   };
   const getInitials = (name: string) => {
@@ -342,9 +372,9 @@ export default function ContractDetails() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Contrato n„o encontrado</h2>
+          <h2 className="text-2xl font-semibold mb-2">Contrato n√£o encontrado</h2>
           <p className="text-muted-foreground mb-4">
-            O contrato solicitado n„o existe ou foi removido.
+            O contrato solicitado n√£o existe ou foi removido.
           </p>
           <Button onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -407,7 +437,7 @@ export default function ContractDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  InformaÁıes do Contrato
+                  Informa√ß√µes do Contrato
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -429,7 +459,7 @@ export default function ContractDetails() {
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Respons·vel Interno</p>
+                      <p className="text-sm text-muted-foreground">Respons√°vel Interno</p>
                       <p className="font-medium">{contract.internalResponsible}</p>
                       <p className="text-sm text-muted-foreground">{contract.responsibleEmail}</p>
                     </div>
@@ -439,7 +469,7 @@ export default function ContractDetails() {
                   <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Data de InÌcio</p>
+                      <p className="text-sm text-muted-foreground">Data de In√≠cio</p>
                       <p className="font-medium">{formatDate(contract.startDate)}</p>
                     </div>
                   </div>
@@ -479,13 +509,13 @@ export default function ContractDetails() {
                   Documentos do Contrato
                 </CardTitle>
                 <CardDescription>
-                  Adicione, visualize ou remova documentos; cada aÁ„o gera histÛrico.
+                  Adicione, visualize ou remova documentos; cada a√ß√£o gera hist√≥rico.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">
-                    FaÁa upload de PDF/DOC/DOCX ou arraste arquivos.
+                    Fa√ßa upload de PDF/DOC/DOCX ou arraste arquivos.
                   </p>
                   <div className="flex items-center gap-2">
                     <Input
@@ -518,8 +548,8 @@ export default function ContractDetails() {
                           <div>
                             <p className="font-medium">{att.fileName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {att.fileType?.toUpperCase()} ï {att.uploadedAt ? formatDate(att.uploadedAt as any) : "Agora"}
-                              {att.uploadedBy ? ` ï por ${att.uploadedBy}` : ""}
+                              {att.fileType?.toUpperCase()} ‚Ä¢ {att.uploadedAt ? formatDate(att.uploadedAt as any) : "Agora"}
+                              {att.uploadedBy ? ` ‚Ä¢ por ${att.uploadedBy}` : ""}
                             </p>
                           </div>
                         </div>
@@ -552,16 +582,16 @@ export default function ContractDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Coment·rios Internos
+                  Coment√°rios Internos
                 </CardTitle>
                 <CardDescription>
-                  Adicione observaÁıes e notas sobre este contrato
+                  Adicione observa√ß√µes e notas sobre este contrato
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <Textarea
-                    placeholder="Adicionar coment·rio..."
+                    placeholder="Adicionar coment√°rio..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     className="min-h-[80px]"
@@ -573,7 +603,7 @@ export default function ContractDetails() {
                       disabled={!newComment.trim()}
                     >
                       <Send className="h-4 w-4 mr-2" />
-                      Adicionar Coment·rio
+                      Adicionar Coment√°rio
                     </Button>
                   </div>
                 </div>
@@ -581,7 +611,7 @@ export default function ContractDetails() {
                 <div className="space-y-4">
                   {contract.comments.length === 0 ? (
                     <p className="text-center text-muted-foreground py-4">
-                      Nenhum coment·rio ainda. Seja o primeiro a comentar!
+                      Nenhum coment√°rio ainda. Seja o primeiro a comentar!
                     </p>
                   ) : (
                     contract.comments.map((comment) => (
@@ -610,7 +640,7 @@ export default function ContractDetails() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">AÁıes R·pidas</CardTitle>
+                <CardTitle className="text-lg">A√ß√µes R√°pidas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button className="w-full justify-start" variant="outline" onClick={handleOpenEdit}>
@@ -623,7 +653,7 @@ export default function ContractDetails() {
                   onClick={() => setShowNotifyModal(true)}
                 >
                   <Mail className="h-4 w-4 mr-2" />
-                  Notificar Respons·vel
+                  Notificar Respons√°vel
                 </Button>
                 <Button
                   className="w-full justify-start"
@@ -640,7 +670,7 @@ export default function ContractDetails() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
-                  HistÛrico
+                  Hist√≥rico
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -670,7 +700,7 @@ export default function ContractDetails() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">InformaÁıes Adicionais</CardTitle>
+                <CardTitle className="text-lg">Informa√ß√µes Adicionais</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
@@ -682,11 +712,11 @@ export default function ContractDetails() {
                   <span className="text-sm font-medium">{formatDate(contract.updatedAt)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Coment·rios:</span>
+                  <span className="text-sm text-muted-foreground">Coment√°rios:</span>
                   <span className="text-sm font-medium">{contract.comments.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">HistÛrico:</span>
+                  <span className="text-sm text-muted-foreground">Hist√≥rico:</span>
                   <span className="text-sm font-medium">{contract.history.length} eventos</span>
                 </div>
               </CardContent>
@@ -709,7 +739,7 @@ export default function ContractDetails() {
                 />
               ) : (
                 <div className="p-4 bg-muted rounded-md text-sm">
-                  VisualizaÁ„o n„o disponÌvel para este formato. Baixe o arquivo para abrir.
+                  Visualiza√ß√£o n√£o dispon√≠vel para este formato. Baixe o arquivo para abrir.
                 </div>
               )}
               <div className="flex justify-end gap-2">
@@ -724,7 +754,7 @@ export default function ContractDetails() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Arquivo n„o disponÌvel para este contrato.
+              Arquivo n√£o dispon√≠vel para este contrato.
             </p>
           )}
         </DialogContent>
@@ -732,9 +762,9 @@ export default function ContractDetails() {
       <Dialog open={showNotifyModal} onOpenChange={setShowNotifyModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Notificar respons·veis</DialogTitle>
+            <DialogTitle>Notificar respons√°veis</DialogTitle>
             <DialogDescription>
-              Escolha usu·rios do sistema ou informe e-mails externos para receberem o aviso.
+              Escolha usu√°rios do sistema ou informe e-mails externos para receberem o aviso.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -747,7 +777,7 @@ export default function ContractDetails() {
                 <SelectContent>
                   <SelectItem value="contrato">Contrato</SelectItem>
                   <SelectItem value="upload">Upload</SelectItem>
-                  <SelectItem value="informacoes">InformaÁıes gerais</SelectItem>
+                  <SelectItem value="informacoes">Informa√ß√µes gerais</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -760,7 +790,7 @@ export default function ContractDetails() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Selecionar usu·rios</Label>
+              <Label>Selecionar usu√°rios</Label>
               <Select
                 value=""
                 onValueChange={(val) => {
@@ -770,7 +800,7 @@ export default function ContractDetails() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Escolha usu·rios" />
+                  <SelectValue placeholder="Escolha usu√°rios" />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((u) => (
@@ -803,7 +833,7 @@ export default function ContractDetails() {
             <Button variant="outline" onClick={() => setShowNotifyModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSendNotification}>Enviar notificaÁ„o</Button>
+            <Button onClick={handleSendNotification}>Enviar notifica√ß√£o</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -812,7 +842,7 @@ export default function ContractDetails() {
           <DialogHeader>
             <DialogTitle>Editar contrato</DialogTitle>
             <DialogDescription>
-              Atualize os dados principais. AlteraÁıes s„o registradas no histÛrico.
+              Atualize os dados principais. Altera√ß√µes s√£o registradas no hist√≥rico.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -824,7 +854,7 @@ export default function ContractDetails() {
               />
             </div>
             <div className="space-y-1">
-              <Label>DescriÁ„o</Label>
+              <Label>Descri√ß√£o</Label>
               <Textarea
                 value={editData.description}
                 onChange={(e) => setEditData((p) => ({ ...p, description: e.target.value }))}
@@ -860,22 +890,22 @@ export default function ContractDetails() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Baixa</SelectItem>
-                    <SelectItem value="medium">MÈdia</SelectItem>
+                    <SelectItem value="medium">M√©dia</SelectItem>
                     <SelectItem value="high">Alta</SelectItem>
-                    <SelectItem value="critical">CrÌtica</SelectItem>
+                    <SelectItem value="critical">Cr√≠tica</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Respons·vel interno</Label>
+              <Label>Respons√°vel interno</Label>
               <Input
                 value={editData.internalResponsible}
                 onChange={(e) => setEditData((p) => ({ ...p, internalResponsible: e.target.value }))}
               />
             </div>
             <div className="space-y-1">
-              <Label>E-mail do respons·vel</Label>
+              <Label>E-mail do respons√°vel</Label>
               <Input
                 value={editData.responsibleEmail}
                 onChange={(e) => setEditData((p) => ({ ...p, responsibleEmail: e.target.value }))}
@@ -886,10 +916,11 @@ export default function ContractDetails() {
             <Button variant="outline" onClick={() => setShowEditModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEdit}>Salvar alteraÁıes</Button>
+            <Button onClick={handleSaveEdit}>Salvar altera√ß√µes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+

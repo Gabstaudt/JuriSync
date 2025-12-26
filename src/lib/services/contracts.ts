@@ -33,7 +33,15 @@ export const contractsService = {
     list: (id: string) => api.get<ContractHistoryEntry[]>(`/api/contracts/${id}/history`),
     add: (
       id: string,
-      payload: { action: string; field?: string; oldValue?: string; newValue?: string; metadata?: Record<string, any> },
+      payload: {
+        action: string;
+        field?: string;
+        oldValue?: string;
+        newValue?: string;
+        metadata?: Record<string, any>;
+        author?: string;
+        authorId?: string;
+      },
     ) => api.post<ContractHistoryEntry>(`/api/contracts/${id}/history`, payload),
   },
   notifications: {

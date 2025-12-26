@@ -1,0 +1,120 @@
+
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Contract } from "@/types/contract";
+import { formatDate, formatCurrency } from "@/lib/contracts";
+import { ContractStatus } from "@/components/contracts/ContractStatus";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ArrowLeft,
+  Building2,
+  Calendar,
+  DollarSign,
+  User,
+  FileText,
+  Download,
+  Edit,
+  MessageSquare,
+  History,
+  Mail,
+  Send,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { toast } from "sonner";
+import { contractsService } from "@/lib/services/contracts";
+import { API_URL } from "@/lib/api";
+import { usersService } from "@/lib/services/users";
+import { useAuth } from "@/contexts/AuthContext";
+
+export default function ContractDetails() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [contract, setContract] = useState<Contract | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [showFileModal, setShowFileModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
+  const [externalEmail, setExternalEmail] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyScope, setNotifyScope] = useState("contrato");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState({
+    name: "",
+    description: "",
+    status: "active",
+    priority: "medium",
+    internalResponsible: "",
+    responsibleEmail: "",
+  });
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+      try {
+        const c = await contractsService.get(id);
+        const comments = await contractsService.comments.list(id);
+        const history = await contractsService.history.list(id);
+        const userList = await usersService.list();
+        setContract({
+          ...c,
+          startDate: new Date(c.startDate),
+          endDate: new Date(c.endDate),
+          createdAt: new Date(c.createdAt),
+          updatedAt: new Date(c.updatedAt),
+          attachments: (c.attachments || []).map((a: any) => ({
+            ...a,
+            uploadedAt: a.uploadedAt ? new Date(a.uploadedAt) : new Date(),
+          })),
+          comments: comments.map((cm) => ({
+            ...cm,
+            createdAt: new Date(cm.createdAt),
+          })),
+          history: history.map((h) => ({
+            ...h,
+            timestamp: new Date(h.timestamp),
+          })),
+        });
+        setUsers(
+          userList.map((u: any) => ({
+            ...u,
+            createdAt: new Date(u.createdAt),
+            updatedAt: new Date(u.updatedAt),
+          })),
+        );
+      } catch (error: any) {
+        toast.error(error?.message || "Contrato não encontrado");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+  const fileInfo = contract?.attachments?.[0] || null;
+  const fileName = contract?.fileName || fileInfo?.fileName || fileInfo?.name;
+  const fileType = contract?.fileType || fileInfo?.fileType;
