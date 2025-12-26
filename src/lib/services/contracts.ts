@@ -52,11 +52,13 @@ export const contractsService = {
     ) => api.post<any>(`/api/contracts/${id}/notifications`, payload),
   },
   upload: async (file: File) => {
+    const token = localStorage.getItem("jurisync_token");
     const formData = new FormData();
     formData.append("file", file);
 
     const res = await fetch(`${API_URL}/api/contracts/upload`, {
       method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
     });
     if (!res.ok) {
