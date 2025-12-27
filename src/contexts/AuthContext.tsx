@@ -32,6 +32,7 @@ const parseUser = (u: PublicUser): User => ({
   phone: u.phone || undefined,
   inviteCode: u.inviteCode || undefined,
   isActive: u.isActive,
+  emailVerified: u.emailVerified ?? false,
   createdAt: new Date(u.createdAt),
   updatedAt: new Date(u.updatedAt),
   lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,

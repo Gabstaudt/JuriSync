@@ -8,6 +8,7 @@ export interface User {
   department?: string;
   phone?: string;
   isActive: boolean;
+  emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date;
@@ -25,6 +26,7 @@ export interface PublicUser {
   phone?: string | null;
   inviteCode?: string | null;
   isActive: boolean;
+  emailVerified?: boolean;
   lastLoginAt?: string | Date | null;
   createdAt: string | Date;
   updatedAt: string | Date;

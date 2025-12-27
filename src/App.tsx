@@ -19,6 +19,7 @@ import FolderContracts from "./pages/FolderContracts";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Companies from "./pages/Companies";
+import EmailConfirmed from "./pages/EmailConfirmed";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,8 @@ const App = () => (
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/email-confirmed" element={<EmailConfirmed />} />
+            <Route path="/email-confirmed/*" element={<EmailConfirmed />} />
 
             {/* Protected routes */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
