@@ -132,6 +132,7 @@ export default function Users() {
   const { user, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
@@ -147,6 +148,12 @@ export default function Users() {
   const [newInvite, setNewInvite] = useState({
     role: "user" as UserRole,
     expiresAt: "",
+  });
+  const [newUserData, setNewUserData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "user" as UserRole,
   });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
@@ -164,6 +171,7 @@ export default function Users() {
             createdAt: new Date(u.createdAt),
             updatedAt: new Date(u.updatedAt),
             lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+            isPending: Boolean((u as any).isPending),
           })),
         );
         setInviteCodes(
@@ -211,6 +219,29 @@ const generateInviteCode = () => {
       toast.success("C?digo de acesso criado com sucesso!");
     } catch (error: any) {
       toast.error(error?.message || "Erro ao criar c?digo");
+    }
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      const created = await usersService.create({
+        ...newUserData,
+      });
+      setUsers((prev) => [
+        {
+          ...created,
+          createdAt: new Date(created.createdAt),
+          updatedAt: new Date(created.updatedAt),
+          lastLoginAt: created.lastLoginAt ? new Date(created.lastLoginAt) : undefined,
+          isPending: Boolean((created as any).isPending),
+        },
+        ...prev,
+      ]);
+      setNewUserData({ name: "", email: "", phone: "", role: "user" });
+      setShowAddUserDialog(false);
+      toast.success("Usuário criado com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao criar usuário");
     }
   };
 
@@ -322,15 +353,20 @@ const getUserPermissions = (userRole: UserRole) => {
             </p>
           </div>
 
-          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Convidar Usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => setShowAddUserDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar usuário
+            </Button>
+            <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Convidar Usuário
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
                 <DialogTitle>Criar Convite</DialogTitle>
                 <DialogDescription>
                   Gere um código de convite para novos usuários
@@ -381,7 +417,87 @@ const getUserPermissions = (userRole: UserRole) => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
+
+        {/* Novo usuário modal */}
+        <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Adicionar usuário</DialogTitle>
+              <DialogDescription>
+                Crie um usuário diretamente informando os dados abaixo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newUserName">Nome</Label>
+                <Input
+                  id="newUserName"
+                  value={newUserData.name}
+                  onChange={(e) =>
+                    setNewUserData((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newUserEmail">E-mail</Label>
+                <Input
+                  id="newUserEmail"
+                  type="email"
+                  value={newUserData.email}
+                  onChange={(e) =>
+                    setNewUserData((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newUserPhone">Telefone</Label>
+                <Input
+                  id="newUserPhone"
+                  value={newUserData.phone}
+                  onChange={(e) =>
+                    setNewUserData((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newUserRole">Tipo de usuário</Label>
+                <Select
+                  value={newUserData.role}
+                  onValueChange={(value) =>
+                    setNewUserData((prev) => ({ ...prev, role: value as UserRole }))
+                  }
+                >
+                  <SelectTrigger id="newUserRole">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="manager">Gerente</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowAddUserDialog(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button className="flex-1" onClick={handleCreateUser}>
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -515,8 +631,12 @@ const getUserPermissions = (userRole: UserRole) => {
                         </TableCell>
                         <TableCell>{u.department || "-"}</TableCell>
                         <TableCell>
-                          <Badge variant={u.isActive ? "default" : "secondary"}>
-                            {u.isActive ? "Ativo" : "Inativo"}
+                          <Badge
+                            variant={
+                              u.isPending ? "outline" : u.isActive ? "default" : "secondary"
+                            }
+                          >
+                            {u.isPending ? "Pendente" : u.isActive ? "Ativo" : "Inativo"}
                           </Badge>
                         </TableCell>
                         <TableCell>

@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   department?: string;
   phone?: string;
+  isPending?: boolean;
   isActive: boolean;
   emailVerified: boolean;
   createdAt: Date;
@@ -25,6 +26,7 @@ export interface PublicUser {
   department?: string | null;
   phone?: string | null;
   inviteCode?: string | null;
+  isPending?: boolean;
   isActive: boolean;
   emailVerified?: boolean;
   lastLoginAt?: string | Date | null;
