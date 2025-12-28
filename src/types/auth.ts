@@ -71,6 +71,8 @@ export interface InviteCode {
   expiresAt: Date;
   usedAt?: Date;
   usedBy?: string;
+  maxUses?: number;
+  usedCount?: number;
   isActive: boolean;
 }
 

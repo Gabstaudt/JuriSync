@@ -148,6 +148,7 @@ export default function Users() {
   const [newInvite, setNewInvite] = useState({
     role: "user" as UserRole,
     expiresAt: "",
+    maxUses: "1",
   });
   const [newUserData, setNewUserData] = useState({
     name: "",
@@ -183,6 +184,8 @@ export default function Users() {
             role: i.role,
             code: i.code,
             isActive: i.is_active ?? i.isActive,
+            maxUses: i.max_uses ?? i.maxUses ?? 1,
+            usedCount: i.used_count ?? i.usedCount ?? 0,
           })) as unknown as InviteCode[],
         );
       } catch (error: any) {
@@ -212,9 +215,10 @@ const generateInviteCode = () => {
         code,
         role: newInvite.role,
         expiresAt: newInvite.expiresAt || undefined,
+        maxUses: Number(newInvite.maxUses) > 0 ? Number(newInvite.maxUses) : 1,
       });
       setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
-      setNewInvite({ role: "user", expiresAt: "" } as any);
+      setNewInvite({ role: "user", expiresAt: "", maxUses: "1" } as any);
       setShowInviteDialog(false);
       toast.success("C?digo de acesso criado com sucesso!");
     } catch (error: any) {
@@ -405,6 +409,22 @@ const getUserPermissions = (userRole: UserRole) => {
                       setNewInvite((prev) => ({
                         ...prev,
                         expiresAt: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="maxUses">Qtd. de usos permitidos</Label>
+                  <Input
+                    id="maxUses"
+                    type="number"
+                    min={1}
+                    value={newInvite.maxUses}
+                    onChange={(e) =>
+                      setNewInvite((prev) => ({
+                        ...prev,
+                        maxUses: e.target.value,
                       }))
                     }
                   />
@@ -706,6 +726,7 @@ const getUserPermissions = (userRole: UserRole) => {
                       <TableHead>Código</TableHead>
                       <TableHead>E-mail</TableHead>
                       <TableHead>Cargo</TableHead>
+                      <TableHead>Usos</TableHead>
                       <TableHead>Criado em</TableHead>
                       <TableHead>Expira em</TableHead>
                       <TableHead>Status</TableHead>
@@ -744,6 +765,11 @@ const getUserPermissions = (userRole: UserRole) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          <span className="text-sm">
+                            {(invite.usedCount ?? 0)}/{invite.maxUses ?? 1}
+                          </span>
+                        </TableCell>
+                        <TableCell>
                           {invite.createdAt
                             ? new Date(invite.createdAt).toLocaleDateString("pt-BR")
                             : "-"}
@@ -765,14 +791,18 @@ const getUserPermissions = (userRole: UserRole) => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                const updatedCodes = inviteCodes.map((c) =>
-                                  c.id === invite.id
-                                    ? { ...c, isActive: false }
-                                    : c,
-                                );
-                                setInviteCodes(updatedCodes);
-                                toast.success("Convite desativado");
+                              onClick={async () => {
+                                try {
+                                  await accessCodeService.delete(invite.id);
+                                  setInviteCodes((prev) =>
+                                    prev.filter((c) => c.id !== invite.id),
+                                  );
+                                  toast.success("Convite removido");
+                                } catch (error: any) {
+                                  toast.error(
+                                    error?.message || "Erro ao remover convite",
+                                  );
+                                }
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
