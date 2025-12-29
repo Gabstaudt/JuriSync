@@ -150,6 +150,7 @@ export default function Users() {
     expiresAt: "",
     maxUses: "1",
   });
+  const [inviteToDelete, setInviteToDelete] = useState<InviteCode | null>(null);
   const [newUserData, setNewUserData] = useState({
     name: "",
     email: "",
@@ -791,19 +792,7 @@ const getUserPermissions = (userRole: UserRole) => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={async () => {
-                                try {
-                                  await accessCodeService.delete(invite.id);
-                                  setInviteCodes((prev) =>
-                                    prev.filter((c) => c.id !== invite.id),
-                                  );
-                                  toast.success("Convite removido");
-                                } catch (error: any) {
-                                  toast.error(
-                                    error?.message || "Erro ao remover convite",
-                                  );
-                                }
-                              }}
+                              onClick={() => setInviteToDelete(invite)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1016,6 +1005,49 @@ const getUserPermissions = (userRole: UserRole) => {
                 </Button>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmar remoção de convite */}
+        <Dialog
+          open={Boolean(inviteToDelete)}
+          onOpenChange={(open) => {
+            if (!open) setInviteToDelete(null);
+          }}
+        >
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Remover convite?</DialogTitle>
+              <DialogDescription>
+                {inviteToDelete
+                  ? `Deseja remover o código ${inviteToDelete.code}?`
+                  : "Deseja remover este convite?"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setInviteToDelete(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!inviteToDelete) return;
+                  try {
+                    await accessCodeService.delete(inviteToDelete.id);
+                    setInviteCodes((prev) =>
+                      prev.filter((c) => c.id !== inviteToDelete.id),
+                    );
+                    toast.success("Convite removido");
+                  } catch (error: any) {
+                    toast.error(error?.message || "Erro ao remover convite");
+                  } finally {
+                    setInviteToDelete(null);
+                  }
+                }}
+              >
+                Remover
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
