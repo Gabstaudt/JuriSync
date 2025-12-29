@@ -160,6 +160,18 @@ export default function Users() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
 
+  const mapInvite = (i: any): InviteCode => ({
+    ...i,
+    createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
+    expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
+    usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
+    role: i.role,
+    code: i.code,
+    isActive: i.is_active ?? i.isActive ?? true,
+    maxUses: i.max_uses ?? i.maxUses ?? 1,
+    usedCount: i.used_count ?? i.usedCount ?? 0,
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -177,17 +189,7 @@ export default function Users() {
           })),
         );
         setInviteCodes(
-          invites.map((i: any) => ({
-            ...i,
-            createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
-            expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
-            usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
-            role: i.role,
-            code: i.code,
-            isActive: i.is_active ?? i.isActive,
-            maxUses: i.max_uses ?? i.maxUses ?? 1,
-            usedCount: i.used_count ?? i.usedCount ?? 0,
-          })) as unknown as InviteCode[],
+          invites.map((i: any) => mapInvite(i)) as unknown as InviteCode[],
         );
       } catch (error: any) {
         toast.error(error?.message || "Erro ao carregar usu?rios");
@@ -218,7 +220,7 @@ const generateInviteCode = () => {
         expiresAt: newInvite.expiresAt || undefined,
         maxUses: Number(newInvite.maxUses) > 0 ? Number(newInvite.maxUses) : 1,
       });
-      setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
+      setInviteCodes((prev) => [mapInvite(created), ...prev]);
       setNewInvite({ role: "user", expiresAt: "", maxUses: "1" } as any);
       setShowInviteDialog(false);
       toast.success("C?digo de acesso criado com sucesso!");
