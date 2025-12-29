@@ -159,6 +159,18 @@ export default function Users() {
   });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
+  const anyDialogOpen =
+    showAddUserDialog ||
+    showInviteDialog ||
+    showEditDialog ||
+    showPermissionsDialog ||
+    Boolean(inviteToDelete);
+
+  useEffect(() => {
+    if (!anyDialogOpen) {
+      document.body.style.pointerEvents = "";
+    }
+  }, [anyDialogOpen]);
 
   const mapInvite = (i: any): InviteCode => ({
     ...i,
@@ -819,7 +831,24 @@ const getUserPermissions = (userRole: UserRole) => {
         </Tabs>
 
         {/* Edit User Dialog */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <Dialog
+          key={`edit-${selectedUser?.id || "none"}`}
+          open={showEditDialog}
+          onOpenChange={(open) => {
+            setShowEditDialog(open);
+            if (!open) {
+              setSelectedUser(null);
+              setEditUserData({
+                name: "",
+                email: "",
+                department: "",
+                phone: "",
+                role: "user",
+                isActive: true,
+              });
+            }
+          }}
+        >
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Editar Usuário</DialogTitle>
@@ -941,8 +970,14 @@ const getUserPermissions = (userRole: UserRole) => {
 
         {/* Permissions Dialog */}
         <Dialog
+          key={`permissions-${selectedUser?.id || "none"}`}
           open={showPermissionsDialog}
-          onOpenChange={setShowPermissionsDialog}
+          onOpenChange={(open) => {
+            setShowPermissionsDialog(open);
+            if (!open) {
+              setSelectedUser(null);
+            }
+          }}
         >
           <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
             <DialogHeader className="flex-shrink-0">
