@@ -184,6 +184,19 @@ export default function Users() {
     usedCount: i.used_count ?? i.usedCount ?? 0,
   });
 
+  const mapUser = (u: any): User => ({
+    ...u,
+    createdAt: new Date(u.createdAt ?? u.created_at ?? new Date()),
+    updatedAt: new Date(u.updatedAt ?? u.updated_at ?? new Date()),
+    lastLoginAt: u.lastLoginAt
+      ? new Date(u.lastLoginAt)
+      : u.last_login_at
+        ? new Date(u.last_login_at)
+        : undefined,
+    isPending: Boolean(u.isPending ?? u.is_pending),
+    isActive: Boolean(u.isActive ?? u.is_active),
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -192,13 +205,7 @@ export default function Users() {
           accessCodeService.list(),
         ]);
         setUsers(
-          userData.map((u) => ({
-            ...u,
-            createdAt: new Date(u.createdAt),
-            updatedAt: new Date(u.updatedAt),
-            lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
-            isPending: Boolean((u as any).isPending),
-          })),
+          userData.map((u) => mapUser(u)),
         );
         setInviteCodes(
           invites.map((i: any) => mapInvite(i)) as unknown as InviteCode[],
@@ -247,13 +254,7 @@ const generateInviteCode = () => {
         ...newUserData,
       });
       setUsers((prev) => [
-        {
-          ...created,
-          createdAt: new Date(created.createdAt),
-          updatedAt: new Date(created.updatedAt),
-          lastLoginAt: created.lastLoginAt ? new Date(created.lastLoginAt) : undefined,
-          isPending: Boolean((created as any).isPending),
-        },
+        mapUser(created),
         ...prev,
       ]);
       setNewUserData({ name: "", email: "", phone: "", role: "user" });
@@ -286,10 +287,7 @@ const handleEditUser = (userToEdit: User) => {
         prev.map((u) =>
           u.id === selectedUser.id
             ? {
-                ...updated,
-                createdAt: new Date(updated.createdAt),
-                updatedAt: new Date(updated.updatedAt),
-                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
+                ...mapUser(updated),
               }
             : u,
         ),
@@ -319,10 +317,7 @@ const handleDeleteUser = async (userId: string) => {
         prev.map((u) =>
           u.id === userId
             ? {
-                ...updated,
-                createdAt: new Date(updated.createdAt),
-                updatedAt: new Date(updated.updatedAt),
-                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
+                ...mapUser(updated),
               }
             : u,
         ),
