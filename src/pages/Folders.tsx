@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Folder,
@@ -396,6 +396,7 @@ const PermissionsSection = ({
 
 export default function Folders() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -406,12 +407,14 @@ export default function Folders() {
   const [form, setForm] = useState<FolderForm>(defaultForm);
   const [permissionMode, setPermissionMode] = useState<PermissionMode>("all");
   const [deleteTarget, setDeleteTarget] = useState<Folder | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const visibleFolders = useMemo(() => folders, [folders]);
 
   useEffect(() => {
     const fetchFolders = async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await foldersService.list();
         const parsed = Array.isArray(data)
@@ -419,7 +422,9 @@ export default function Folders() {
           : [];
         setFolders(parsed);
       } catch (error: any) {
-        toast.error(error?.message || "Erro ao carregar pastas");
+        const msg = error?.message || "Erro ao carregar pastas";
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -436,6 +441,18 @@ export default function Folders() {
     };
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (!folders.length) return;
+    const searchParams = new URLSearchParams(location.search);
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const target = folders.find((f) => f.id === editId);
+      if (target) {
+        openEditDialog(target);
+      }
+    }
+  }, [folders, location.search]);
 
   const openCreateDialog = () => {
     setDialogMode("create");
@@ -743,6 +760,17 @@ export default function Folders() {
           <Card>
             <CardContent className="py-6 text-sm text-muted-foreground">
               Carregando pastas...
+            </CardContent>
+          </Card>
+        )}
+
+        {error && !loading && (
+          <Card>
+            <CardContent className="py-6 space-y-3">
+              <div className="text-sm text-red-600">{error}</div>
+              <Button size="sm" variant="outline" onClick={() => location.reload()}>
+                Tentar novamente
+              </Button>
             </CardContent>
           </Card>
         )}
