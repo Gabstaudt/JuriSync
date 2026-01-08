@@ -55,6 +55,7 @@ import {
   Users,
   Clock,
   Target,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/contracts";
@@ -276,6 +277,14 @@ export default function Dashboard() {
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Novo Contrato
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowImport(true)}
+                >
+                  <Search className="h-4 w-4 mr-1" />
+                  Analisar contrato
                 </Button>
 
                 <Dialog open={showImport} onOpenChange={setShowImport}>
