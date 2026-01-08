@@ -277,6 +277,14 @@ export default function FolderContracts() {
 
   const IconComponent = getIconComponent(folder.icon);
   const statusCounts = getStatusCounts();
+  const canManageFolder = () => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    const perms = normalizePermissions((folder as any).permissions);
+    const roleAllowed = (perms.manageRoles || []).includes(user.role as UserRole);
+    const idAllowed = (perms.canManage || []).includes(user.id);
+    return (hasPermission("canManageFolders") || user.role === "manager") && (roleAllowed || idAllowed);
+  };
   const handleDelete = async () => {
     if (!folder) return;
     setIsDeleting(true);
@@ -400,29 +408,27 @@ export default function FolderContracts() {
                 </Badge>
               </div>
             </div>
-          </div>
+        </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={openEditModal}
-          >
-            Editar
-          </Button>
-            {folder.type !== "system" && (
-              <Button
-                variant="destructive"
-                onClick={() => setDeleteOpen(true)}
-              >
-                Excluir
+          {canManageFolder() && (
+            <>
+              <Button variant="outline" onClick={openEditModal}>
+                Editar
               </Button>
-            )}
-            {hasPermission("canCreateContracts") && (
-              <Button onClick={() => navigate("/contracts/new")}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Contrato
-              </Button>
-            )}
+              {folder.type !== "system" && (
+                <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+                  Excluir
+                </Button>
+              )}
+            </>
+          )}
+          {hasPermission("canCreateContracts") && (
+            <Button onClick={() => navigate("/contracts/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Contrato
+            </Button>
+          )}
           </div>
         </div>
 
@@ -622,7 +628,7 @@ export default function FolderContracts() {
       </AlertDialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar pasta</DialogTitle>
             <DialogDescription>Atualize nome, descrição e visual da pasta.</DialogDescription>
@@ -759,16 +765,15 @@ const MultiUserSelector = ({
       <Label>{label}</Label>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="w-full justify-between">
+          <Button variant="outline" className="w-full justify-between h-10 text-sm">
             <span>
               {selectedIds.length
                 ? `${selectedIds.length} selecionado(s)`
-                : "Selecionar usuarios"}
+                : "usuarios"}
             </span>
-            <ChevronsUpDown className="h-4 w-4 opacity-60" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-80">
+        <PopoverContent className="p-0 w-80 max-h-72 overflow-y-auto">
           <Command>
             <CommandInput placeholder="Buscar usuario..." />
             <CommandList>
@@ -778,15 +783,15 @@ const MultiUserSelector = ({
                   <CommandItem
                     key={u.id}
                     onSelect={() => toggle(u.id)}
-                    className="flex items-start gap-2"
+                    className="flex items-start gap-2 px-3 py-2"
                   >
                     <Checkbox
                       checked={selectedIds.includes(u.id)}
-                      className="mt-0.5"
+                      className="mt-0.5 h-4 w-4"
                       onCheckedChange={() => toggle(u.id)}
                     />
                     <div>
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium leading-tight">
                         {u.name || u.email}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -804,7 +809,7 @@ const MultiUserSelector = ({
         {selectedIds.map((id) => {
           const user = users.find((u) => u.id === id);
           return (
-            <Badge key={id} variant="secondary">
+            <Badge key={id} variant="secondary" className="h-6 text-xs px-2">
               {user?.name || user?.email || id}
             </Badge>
           );

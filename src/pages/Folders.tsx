@@ -461,6 +461,15 @@ export default function Folders() {
     setDialogOpen(true);
   };
 
+  const canManageFolder = (f: Folder) => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    const perms = normalizePermissions((f as any).permissions);
+    const roleAllowed = (perms.manageRoles || []).includes(user.role as UserRole);
+    const idAllowed = (perms.canManage || []).includes(user.id);
+    return hasPermission("canManageFolders") && (roleAllowed || idAllowed || user.role === "manager");
+  };
+
   const openEditDialog = (folder: Folder) => {
     const perms = normalizePermissions(folder.permissions);
     setDialogMode("edit");
@@ -835,7 +844,7 @@ export default function Folders() {
                           Ver Contratos
                         </DropdownMenuItem>
                         {folder.type !== "system" &&
-                          hasPermission("canManageFolders") && (
+                          canManageFolder(folder) && (
                             <>
                               <DropdownMenuItem
                                 onClick={(e) => {
