@@ -9,6 +9,11 @@ export default function NotFound() {
   const { isAuthenticated } = useAuth();
 
   const handleGoHome = () => {
+    // Se o link de confirmacao caiu aqui por algum motivo, redireciona para a tela correta
+    if (window.location.pathname.startsWith("/email-confirmed")) {
+      navigate("/email-confirmed", { replace: true });
+      return;
+    }
     if (isAuthenticated) {
       navigate("/dashboard");
     } else {
