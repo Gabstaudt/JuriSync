@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Companies from "./pages/Companies";
 import EmailConfirmed from "./pages/EmailConfirmed";
+import Tasks from "./pages/Tasks";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <ProtectedRoute>
+                  <Tasks />
                 </ProtectedRoute>
               }
             />
