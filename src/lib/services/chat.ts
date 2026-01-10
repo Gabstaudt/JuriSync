@@ -10,6 +10,8 @@ export const chatService = {
       "/api/chat/conversations",
       { participantIds, message, attachments },
     ),
+  createTeamConversation: (teamId: string, message?: string, attachments?: Attachment[]) =>
+    api.post<{ id: string; message?: Message }>("/api/chat/conversations", { teamId, message, attachments }),
   listMessages: (conversationId: string) =>
     api.get<Message[]>(`/api/chat/conversations/${conversationId}/messages`),
   sendMessage: (conversationId: string, payload: { content?: string; attachments?: Attachment[] }) =>
