@@ -62,6 +62,7 @@ import {
   Settings,
   Edit,
   Trash2,
+  UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usersService, accessCodeService } from "@/lib/services/users";
@@ -157,6 +158,9 @@ export default function Users() {
   });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
+  const [teams, setTeams] = useState<{ id: string; name: string; users: string[] }[]>([]);
+  const [teamForm, setTeamForm] = useState({ id: "", name: "", users: [] as string[] });
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -321,6 +325,46 @@ const getUserPermissions = (userRole: UserRole) => {
   const getFilteredUsers = () => {
     if (filterByCreator === "all") return users;
     return users.filter((u) => u.invitedBy === filterByCreator);
+  };
+
+  const resetTeamForm = () => setTeamForm({ id: "", name: "", users: [] });
+
+  const handleSaveTeam = () => {
+    if (!teamForm.name.trim()) {
+      toast.error("Informe o nome da equipe");
+      return;
+    }
+    if (!teamForm.users.length) {
+      toast.error("Selecione pelo menos um usuário");
+      return;
+    }
+
+    if (teamForm.id) {
+      setTeams((prev) =>
+        prev.map((t) => (t.id === teamForm.id ? { ...t, name: teamForm.name, users: teamForm.users } : t)),
+      );
+      toast.success("Equipe atualizada");
+    } else {
+      setTeams((prev) => [
+        { id: crypto.randomUUID(), name: teamForm.name, users: teamForm.users },
+        ...prev,
+      ]);
+      toast.success("Equipe criada");
+    }
+    resetTeamForm();
+    setIsTeamDialogOpen(false);
+  };
+
+  const startEditTeam = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (!team) return;
+    setTeamForm(team);
+    setIsTeamDialogOpen(true);
+  };
+
+  const deleteTeam = (teamId: string) => {
+    setTeams((prev) => prev.filter((t) => t.id !== teamId));
+    toast.success("Equipe removida");
   };
 
   if (!hasPermission("canManageUsers")) {
@@ -561,6 +605,7 @@ const getUserPermissions = (userRole: UserRole) => {
           <TabsList>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="invites">Convites</TabsTrigger>
+            <TabsTrigger value="teams">Equipes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
@@ -795,6 +840,57 @@ const getUserPermissions = (userRole: UserRole) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="teams" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Equipes</CardTitle>
+                  <CardDescription>Monte equipes com usuários existentes.</CardDescription>
+                </div>
+                <Button onClick={() => setIsTeamDialogOpen(true)}>
+                  <UsersRound className="h-4 w-4 mr-2" />
+                  Nova equipe
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {teams.length ? (
+                  teams.map((team) => (
+                    <div
+                      key={team.id}
+                      className="flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{team.name}</p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {team.users.map((uid) => {
+                            const member = users.find((u) => u.id === uid);
+                            return (
+                              <Badge key={uid} variant="secondary">
+                                {member?.name || member?.email || uid}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => startEditTeam(team.id)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => deleteTeam(team.id)}>
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Nenhuma equipe criada ainda.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Edit User Dialog */}
@@ -914,6 +1010,68 @@ const getUserPermissions = (userRole: UserRole) => {
                   Salvar
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Team Dialog */}
+        <Dialog
+          open={isTeamDialogOpen}
+          onOpenChange={(open) => {
+            setIsTeamDialogOpen(open);
+            if (!open) resetTeamForm();
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{teamForm.id ? "Editar equipe" : "Nova equipe"}</DialogTitle>
+              <DialogDescription>Defina o nome e os membros da equipe.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome da equipe</Label>
+                <Input
+                  value={teamForm.name}
+                  onChange={(e) => setTeamForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Ex: Jurídico Estratégico"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Membros</Label>
+                <div className="flex flex-wrap gap-2">
+                  {users.map((u) => {
+                    const selected = teamForm.users.includes(u.id);
+                    return (
+                      <Button
+                        key={u.id}
+                        size="sm"
+                        variant={selected ? "default" : "outline"}
+                        onClick={() => {
+                          setTeamForm((f) => {
+                            const set = new Set(f.users);
+                            selected ? set.delete(u.id) : set.add(u.id);
+                            return { ...f, users: Array.from(set) };
+                          });
+                        }}
+                      >
+                        {u.name || u.email}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsTeamDialogOpen(false);
+                  resetTeamForm();
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveTeam}>{teamForm.id ? "Atualizar" : "Criar"}</Button>
             </div>
           </DialogContent>
         </Dialog>
