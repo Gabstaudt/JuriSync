@@ -97,6 +97,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import {
 
@@ -123,6 +133,7 @@ import {
   Edit,
   Trash2,
   UsersRound,
+  ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -211,7 +222,7 @@ const getRoleLabel = (role: UserRole) => {
 
     manager: "Gerente",
 
-    user: "Usurio",
+    user: "Usuário",
 
   };
 
@@ -308,9 +319,28 @@ export default function Users() {
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
-  const [teamForm, setTeamForm] = useState({ id: "", name: "", users: [] as string[] });
+  const [teamForm, setTeamForm] = useState({ id: "", name: "", description: "", users: [] as string[] });
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
-
+  const resetTeamForm = () => setTeamForm({ id: "", name: "", description: "", users: [] });
+  const resetEditUserForm = () =>
+    setEditUserData({
+      name: "",
+      email: "",
+      department: "",
+      phone: "",
+      role: "user",
+      isActive: true,
+    });
+  const closeAllDialogs = () => {
+    setShowAddUserDialog(false);
+    setShowInviteDialog(false);
+    setShowEditDialog(false);
+    setShowPermissionsDialog(false);
+    setIsTeamDialogOpen(false);
+    setSelectedUser(null);
+    resetEditUserForm();
+    resetTeamForm();
+  };
 
   useEffect(() => {
 
@@ -368,7 +398,7 @@ export default function Users() {
 
       } catch (error: any) {
 
-        toast.error(error?.message || "Erro ao carregar usu?rios");
+        toast.error(error?.message || "Erro ao carregar usuários");
 
       }
       setLoadingData(false);
@@ -428,11 +458,11 @@ const generateInviteCode = () => {
 
       setShowInviteDialog(false);
 
-      toast.success("C?digo de acesso criado com sucesso!");
+      toast.success("Código de acesso criado com sucesso!");
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao criar c?digo");
+      toast.error(error?.message || "Erro ao criar código");
 
     }
 
@@ -474,7 +504,7 @@ const generateInviteCode = () => {
 
       setShowAddUserDialog(false);
 
-      toast.success("Usurio criado com sucesso!");
+      toast.success("Usuário criado com sucesso!");
 
     } catch (error: any) {
 
@@ -570,11 +600,11 @@ const handleEditUser = (userToEdit: User) => {
 
       setSelectedUser(null);
 
-      toast.success("Usu?rio atualizado com sucesso!");
+      toast.success("Usuário atualizado com sucesso!");
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao salvar usu?rio");
+      toast.error(error?.message || "Erro ao salvar usuário");
 
     }
 
@@ -612,11 +642,11 @@ const handleDeleteUser = async (userId: string) => {
 
       );
 
-      toast.success("Usu?rio inativado com sucesso!");
+      toast.success("Usuário inativado com sucesso!");
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao inativar usu?rio");
+      toast.error(error?.message || "Erro ao inativar usuário");
 
     }
 
@@ -637,8 +667,6 @@ const getUserPermissions = (userRole: UserRole) => {
     return users.filter((u) => u.invitedBy === filterByCreator);
   };
 
-  const resetTeamForm = () => setTeamForm({ id: "", name: "", users: [] });
-
   const loadTeams = async () => {
     setTeamsLoading(true);
     try {
@@ -651,7 +679,7 @@ const getUserPermissions = (userRole: UserRole) => {
     }
   };
 
-    const handleSaveTeam = async () => {
+  const handleSaveTeam = async () => {
     if (!teamForm.name.trim()) {
       toast.error("Informe o nome da equipe");
       return;
@@ -665,6 +693,7 @@ const getUserPermissions = (userRole: UserRole) => {
       if (teamForm.id) {
         const updated = await teamsService.update(teamForm.id, {
           name: teamForm.name,
+          description: teamForm.description || undefined,
           members: teamForm.users,
         });
         setTeams((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -672,6 +701,7 @@ const getUserPermissions = (userRole: UserRole) => {
       } else {
         const created = await teamsService.create({
           name: teamForm.name,
+          description: teamForm.description || undefined,
           members: teamForm.users,
         });
         setTeams((prev) => [created, ...prev]);
@@ -690,6 +720,7 @@ const startEditTeam = (teamId: string) => {
     setTeamForm({
       id: team.id,
       name: team.name,
+      description: team.description || "",
       users: (team.members || []).map((m: any) => m.id) || (team as any).users || [],
     });
     setIsTeamDialogOpen(true);
@@ -721,9 +752,7 @@ const startEditTeam = (teamId: string) => {
             <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
 
             <p className="text-muted-foreground">
-
-              Voc no tem permisso para gerenciar usuários.
-
+              Você não tem permissão para gerenciar usuários.
             </p>
 
           </div>
@@ -776,7 +805,13 @@ const startEditTeam = (teamId: string) => {
 
             </Button>
 
-            <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <Dialog
+              open={showInviteDialog}
+              onOpenChange={(open) => {
+                closeAllDialogs();
+                setShowInviteDialog(open);
+              }}
+            >
 
               <DialogTrigger asChild>
 
@@ -798,7 +833,7 @@ const startEditTeam = (teamId: string) => {
 
                 <DialogDescription>
 
-                  Gere um cdigo de convite para novos usuários
+                  Gere um código de convite para novos usuários
 
                 </DialogDescription>
 
@@ -836,7 +871,7 @@ const startEditTeam = (teamId: string) => {
 
                     <SelectContent>
 
-                      <SelectItem value="user">Usurio</SelectItem>
+                      <SelectItem value="user">Usuário</SelectItem>
 
                       <SelectItem value="manager">Gerente</SelectItem>
 
@@ -902,7 +937,13 @@ const startEditTeam = (teamId: string) => {
 
         {/* Novo usuário modal */}
 
-        <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+        <Dialog
+          open={showAddUserDialog}
+          onOpenChange={(open) => {
+            closeAllDialogs();
+            setShowAddUserDialog(open);
+          }}
+        >
 
           <DialogContent className="max-w-md">
 
@@ -1012,7 +1053,7 @@ const startEditTeam = (teamId: string) => {
 
                   <SelectContent>
 
-                    <SelectItem value="user">Usurio</SelectItem>
+                    <SelectItem value="user">Usuário</SelectItem>
 
                     <SelectItem value="manager">Gerente</SelectItem>
 
@@ -1251,7 +1292,7 @@ const startEditTeam = (teamId: string) => {
 
                     <TableRow>
 
-                      <TableHead>Usurio</TableHead>
+                      <TableHead>Usuário</TableHead>
 
                       <TableHead>Cargo</TableHead>
 
@@ -1391,7 +1432,7 @@ const startEditTeam = (teamId: string) => {
 
                                 <Shield className="mr-2 h-4 w-4" />
 
-                                Ver Permisses
+                                Ver permissões
 
                               </DropdownMenuItem>
 
@@ -1445,7 +1486,7 @@ const startEditTeam = (teamId: string) => {
 
                 <CardDescription>
 
-                  Gerencie cdigos de convite para novos usuários
+                  Gerencie códigos de convite para novos usuários
 
                 </CardDescription>
 
@@ -1625,11 +1666,11 @@ const startEditTeam = (teamId: string) => {
 
                     <Mail className="h-12 w-12 mx-auto mb-4" />
 
-                    <p>Nenhum cdigo de convite ativo</p>
+                    <p>Nenhum código de convite ativo</p>
 
                     <p className="text-sm">
 
-                      Crie cdigos de convite para adicionar novos usuários
+                      Crie códigos de convite para adicionar novos usuários
 
                     </p>
 
@@ -1662,6 +1703,9 @@ const startEditTeam = (teamId: string) => {
                     >
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{team.name}</p>
+                        {team.description && (
+                          <p className="text-xs text-muted-foreground">{team.description}</p>
+                        )}
                         <div className="mt-1 flex flex-wrap gap-2">
                           {(team.members || []).map((member) => (
                             <Badge key={member.id} variant="secondary">
@@ -1692,241 +1736,145 @@ const startEditTeam = (teamId: string) => {
 
 
         {/* Edit User Dialog */}
-
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-
-          <DialogContent className="max-w-md">
-
+        <Dialog
+          modal={false}
+          open={showEditDialog}
+          onOpenChange={(open) => {
+            closeAllDialogs();
+            setShowEditDialog(open);
+            if (!open) {
+              setSelectedUser(null);
+              resetEditUserForm();
+            }
+          }}
+        >
+          <DialogContent
+            className="max-w-md"
+            onInteractOutside={() => setShowEditDialog(false)}
+            onEscapeKeyDown={() => setShowEditDialog(false)}
+          >
             <DialogHeader>
-
-              <DialogTitle>Editar Usurio</DialogTitle>
-
+              <DialogTitle>Editar Usuário</DialogTitle>
               <DialogDescription>
-
-                Atualize as informaes do usuário
-
+                Atualize as informações do usuário
               </DialogDescription>
-
             </DialogHeader>
-
             <div className="space-y-4">
-
               <div className="space-y-2">
-
                 <Label htmlFor="editName">Nome</Label>
-
                 <Input
-
                   id="editName"
-
                   value={editUserData.name}
-
                   onChange={(e) =>
-
                     setEditUserData((prev) => ({
-
                       ...prev,
-
                       name: e.target.value,
-
                     }))
-
                   }
-
                 />
-
               </div>
-
-
 
               <div className="space-y-2">
-
                 <Label htmlFor="editEmail">E-mail</Label>
-
                 <Input
-
                   id="editEmail"
-
                   type="email"
-
                   value={editUserData.email}
-
                   onChange={(e) =>
-
                     setEditUserData((prev) => ({
-
                       ...prev,
-
                       email: e.target.value,
-
                     }))
-
                   }
-
                 />
-
               </div>
-
-
 
               <div className="grid grid-cols-2 gap-4">
-
                 <div className="space-y-2">
-
                   <Label htmlFor="editDepartment">Departamento</Label>
-
                   <Input
-
                     id="editDepartment"
-
                     value={editUserData.department}
-
                     onChange={(e) =>
-
                       setEditUserData((prev) => ({
-
                         ...prev,
-
                         department: e.target.value,
-
                       }))
-
                     }
-
                   />
-
                 </div>
-
-
 
                 <div className="space-y-2">
-
                   <Label htmlFor="editPhone">Telefone</Label>
-
                   <Input
-
                     id="editPhone"
-
                     value={editUserData.phone}
-
                     onChange={(e) =>
-
                       setEditUserData((prev) => ({
-
                         ...prev,
-
                         phone: e.target.value,
-
                       }))
-
                     }
-
                   />
-
                 </div>
-
               </div>
-
-
 
               <div className="space-y-2">
-
                 <Label htmlFor="editRole">Cargo</Label>
-
                 <Select
-
                   value={editUserData.role}
-
                   onValueChange={(value) =>
-
                     setEditUserData((prev) => ({
-
                       ...prev,
-
                       role: value as UserRole,
-
                     }))
-
                   }
-
                 >
-
                   <SelectTrigger>
-
                     <SelectValue />
-
                   </SelectTrigger>
-
                   <SelectContent>
-
-                    <SelectItem value="user">Usurio</SelectItem>
-
+                    <SelectItem value="user">Usuário</SelectItem>
                     <SelectItem value="manager">Gerente</SelectItem>
-
                     <SelectItem value="admin">Administrador</SelectItem>
-
                   </SelectContent>
-
                 </Select>
-
               </div>
-
-
 
               <div className="flex items-center space-x-2">
-
                 <Switch
-
                   id="editActive"
-
                   checked={editUserData.isActive}
-
                   onCheckedChange={(checked) =>
-
                     setEditUserData((prev) => ({
-
                       ...prev,
-
                       isActive: checked,
-
                     }))
-
                   }
-
                 />
-
-                <Label htmlFor="editActive">Usurio ativo</Label>
-
+                <Label htmlFor="editActive">Usuário ativo</Label>
               </div>
-
-
 
               <div className="flex gap-2">
-
                 <Button
-
                   variant="outline"
-
                   onClick={() => setShowEditDialog(false)}
-
                   className="flex-1"
-
                 >
-
                   Cancelar
-
                 </Button>
-
-                <Button onClick={handleSaveUser} className="flex-1">
-
+                <Button
+                  onClick={async () => {
+                    await handleSaveUser();
+                    setShowEditDialog(false);
+                    resetEditUserForm();
+                  }}
+                  className="flex-1"
+                >
                   Salvar
-
                 </Button>
-
               </div>
-
             </div>
-
           </DialogContent>
         </Dialog>
 
@@ -1934,14 +1882,15 @@ const startEditTeam = (teamId: string) => {
         <Dialog
           open={isTeamDialogOpen}
           onOpenChange={(open) => {
+            closeAllDialogs();
             setIsTeamDialogOpen(open);
             if (!open) resetTeamForm();
           }}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{teamForm.id ? "Editar equipe" : "Nova equipe"}</DialogTitle>
-              <DialogDescription>Defina o nome e os membros da equipe.</DialogDescription>
+              <DialogDescription>Defina o nome, descrição e membros da equipe.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -1949,29 +1898,84 @@ const startEditTeam = (teamId: string) => {
                 <Input
                   value={teamForm.name}
                   onChange={(e) => setTeamForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Ex: Jurdico Estratgico"
+                  placeholder="Ex: Jurídico Estratégico"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Input
+                  value={teamForm.description}
+                  onChange={(e) => setTeamForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Resumo da atuação da equipe"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Membros</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span>
+                        {teamForm.users.length
+                          ? `${teamForm.users.length} selecionado(s)`
+                          : "Selecionar membros"}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 opacity-60" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-80">
+                    <Command>
+                      <CommandInput placeholder="Buscar usuário..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum usuário encontrado</CommandEmpty>
+                        <CommandGroup>
+                          {users.map((u) => {
+                            const selected = teamForm.users.includes(u.id);
+                            return (
+                              <CommandItem
+                                key={u.id}
+                                onSelect={() => {
+                                  setTeamForm((f) => {
+                                    const set = new Set(f.users);
+                                    selected ? set.delete(u.id) : set.add(u.id);
+                                    return { ...f, users: Array.from(set) };
+                                  });
+                                }}
+                                className="flex items-start gap-2"
+                              >
+                                <Checkbox
+                                  checked={selected}
+                                  className="mt-0.5"
+                                  onCheckedChange={() => {
+                                    setTeamForm((f) => {
+                                      const set = new Set(f.users);
+                                      selected ? set.delete(u.id) : set.add(u.id);
+                                      return { ...f, users: Array.from(set) };
+                                    });
+                                  }}
+                                />
+                                <div>
+                                  <div className="text-sm font-medium">
+                                    {u.name || u.email}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {u.email}
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <div className="flex flex-wrap gap-2">
-                  {users.map((u) => {
-                    const selected = teamForm.users.includes(u.id);
+                  {teamForm.users.map((uid) => {
+                    const member = users.find((u) => u.id === uid);
                     return (
-                      <Button
-                        key={u.id}
-                        size="sm"
-                        variant={selected ? "default" : "outline"}
-                        onClick={() => {
-                          setTeamForm((f) => {
-                            const set = new Set(f.users);
-                            selected ? set.delete(u.id) : set.add(u.id);
-                            return { ...f, users: Array.from(set) };
-                          });
-                        }}
-                      >
-                        {u.name || u.email}
-                      </Button>
+                      <Badge key={uid} variant="secondary">
+                        {member?.name || member?.email || uid}
+                      </Badge>
                     );
                   })}
                 </div>
@@ -1994,19 +1998,26 @@ const startEditTeam = (teamId: string) => {
 
         {/* Permissions Dialog */}
         <Dialog
+          modal={false}
           open={showPermissionsDialog}
-          onOpenChange={setShowPermissionsDialog}
+          onOpenChange={(open) => {
+            closeAllDialogs();
+            setShowPermissionsDialog(open);
+          }}
         >
-
-          <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogContent
+            className="max-w-md max-h-[80vh] overflow-hidden flex flex-col"
+            onInteractOutside={() => setShowPermissionsDialog(false)}
+            onEscapeKeyDown={() => setShowPermissionsDialog(false)}
+          >
 
             <DialogHeader className="flex-shrink-0">
 
-              <DialogTitle>Permisses do Usurio</DialogTitle>
+              <DialogTitle>Permissões do Usuário</DialogTitle>
 
               <DialogDescription>
 
-                Permisses baseadas no cargo:{" "}
+                Permissões baseadas no cargo:{" "}
 
                 {selectedUser ? getRoleLabel(selectedUser.role) : ""}
 
