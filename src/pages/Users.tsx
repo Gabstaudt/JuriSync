@@ -301,26 +301,19 @@ export default function Users() {
 
   });
 
-  const [newInvite, setNewInvite] = useState({
+  const newUserDefaults = { name: "", email: "", phone: "", role: "user" as UserRole };
+  const newInviteDefaults = { role: "user" as UserRole, expiresAt: "" };
 
-    role: "user" as UserRole,
+  const [newInvite, setNewInvite] = useState(newInviteDefaults);
 
-    expiresAt: "",
-
-  });
-
-  const [newUserData, setNewUserData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    role: "user" as UserRole,
-  });
+  const [newUserData, setNewUserData] = useState(newUserDefaults);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamForm, setTeamForm] = useState({ id: "", name: "", description: "", users: [] as string[] });
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
+
   const resetTeamForm = () => setTeamForm({ id: "", name: "", description: "", users: [] });
   const resetEditUserForm = () =>
     setEditUserData({
@@ -331,15 +324,16 @@ export default function Users() {
       role: "user",
       isActive: true,
     });
-  const closeAllDialogs = () => {
-    setShowAddUserDialog(false);
-    setShowInviteDialog(false);
+
+  const handleCloseEditDialog = () => {
     setShowEditDialog(false);
-    setShowPermissionsDialog(false);
-    setIsTeamDialogOpen(false);
     setSelectedUser(null);
     resetEditUserForm();
-    resetTeamForm();
+  };
+
+  const handleClosePermissionsDialog = () => {
+    setShowPermissionsDialog(false);
+    setSelectedUser(null);
   };
 
   useEffect(() => {
@@ -454,7 +448,7 @@ const generateInviteCode = () => {
 
       setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
 
-      setNewInvite({ role: "user", expiresAt: "" } as any);
+      setNewInvite(newInviteDefaults);
 
       setShowInviteDialog(false);
 
@@ -500,7 +494,7 @@ const generateInviteCode = () => {
 
       ]);
 
-      setNewUserData({ name: "", email: "", phone: "", role: "user" });
+      setNewUserData(newUserDefaults);
 
       setShowAddUserDialog(false);
 
@@ -806,10 +800,11 @@ const startEditTeam = (teamId: string) => {
             </Button>
 
             <Dialog
+              modal={false}
               open={showInviteDialog}
               onOpenChange={(open) => {
-                closeAllDialogs();
                 setShowInviteDialog(open);
+                if (!open) setNewInvite(newInviteDefaults);
               }}
             >
 
@@ -919,7 +914,7 @@ const startEditTeam = (teamId: string) => {
 
                   <Key className="h-4 w-4 mr-2" />
 
-                  Gerar Cdigo
+                  Gerar C?digo
 
                 </Button>
 
@@ -938,10 +933,11 @@ const startEditTeam = (teamId: string) => {
         {/* Novo usuário modal */}
 
         <Dialog
+          modal={false}
           open={showAddUserDialog}
           onOpenChange={(open) => {
-            closeAllDialogs();
             setShowAddUserDialog(open);
+            if (!open) setNewUserData(newUserDefaults);
           }}
         >
 
@@ -1390,7 +1386,7 @@ const startEditTeam = (teamId: string) => {
 
                         <TableCell>
 
-                          <DropdownMenu>
+                          <DropdownMenu modal={false}>
 
                             <DropdownMenuTrigger asChild>
 
@@ -1740,19 +1736,13 @@ const startEditTeam = (teamId: string) => {
           modal={false}
           open={showEditDialog}
           onOpenChange={(open) => {
-            closeAllDialogs();
             setShowEditDialog(open);
             if (!open) {
-              setSelectedUser(null);
-              resetEditUserForm();
+              handleCloseEditDialog();
             }
           }}
         >
-          <DialogContent
-            className="max-w-md"
-            onInteractOutside={() => setShowEditDialog(false)}
-            onEscapeKeyDown={() => setShowEditDialog(false)}
-          >
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Editar Usuário</DialogTitle>
               <DialogDescription>
@@ -1880,9 +1870,9 @@ const startEditTeam = (teamId: string) => {
 
         {/* Team Dialog */}
         <Dialog
+          modal={false}
           open={isTeamDialogOpen}
           onOpenChange={(open) => {
-            closeAllDialogs();
             setIsTeamDialogOpen(open);
             if (!open) resetTeamForm();
           }}
@@ -2001,14 +1991,12 @@ const startEditTeam = (teamId: string) => {
           modal={false}
           open={showPermissionsDialog}
           onOpenChange={(open) => {
-            closeAllDialogs();
             setShowPermissionsDialog(open);
+            if (!open) handleClosePermissionsDialog();
           }}
         >
           <DialogContent
             className="max-w-md max-h-[80vh] overflow-hidden flex flex-col"
-            onInteractOutside={() => setShowPermissionsDialog(false)}
-            onEscapeKeyDown={() => setShowPermissionsDialog(false)}
           >
 
             <DialogHeader className="flex-shrink-0">
