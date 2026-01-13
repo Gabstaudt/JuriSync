@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import { useAuth } from "@/contexts/AuthContext";
 
-import { User, InviteCode, UserRole, UserPermissions } from "@/types/auth";
+import { User, InviteCode, UserRole, UserPermissions, defaultPermissions } from "@/types/auth";
 
 import { Layout } from "@/components/layout/Layout";
 
@@ -142,74 +142,16 @@ import { teamsService } from "@/lib/services/teams";
 import { Team } from "@/types/team";
 
 
-const defaultPermissions: Record<UserRole, UserPermissions> = {
-
-  admin: {
-
-    canCreateContracts: true,
-
-    canEditContracts: true,
-
-    canDeleteContracts: true,
-
-    canManageUsers: true,
-
-    canManageFolders: true,
-
-    canAccessAnalytics: true,
-
-    canExportData: true,
-
-    canManageNotifications: true,
-
-    canManageSystem: true,
-
-  },
-
-  manager: {
-
-    canCreateContracts: true,
-
-    canEditContracts: true,
-
-    canDeleteContracts: false,
-
-    canManageUsers: false,
-
-    canManageFolders: true,
-
-    canAccessAnalytics: true,
-
-    canExportData: true,
-
-    canManageNotifications: true,
-
-    canManageSystem: false,
-
-  },
-
-  user: {
-
-    canCreateContracts: false,
-
-    canEditContracts: false,
-
-    canDeleteContracts: false,
-
-    canManageUsers: false,
-
-    canManageFolders: false,
-
-    canAccessAnalytics: false,
-
-    canExportData: false,
-
-    canManageNotifications: false,
-
-    canManageSystem: false,
-
-  },
-
+const permissionLabels: Record<keyof UserPermissions, string> = {
+  canCreateContracts: "Criar contratos",
+  canEditContracts: "Editar contratos",
+  canDeleteContracts: "Excluir contratos",
+  canManageUsers: "Gerenciar usuários",
+  canManageFolders: "Gerenciar pastas",
+  canAccessAnalytics: "Acessar análises",
+  canExportData: "Exportar dados",
+  canManageNotifications: "Gerenciar notificações",
+  canManageSystem: "Administrar sistema",
 };
 
 
@@ -313,6 +255,8 @@ export default function Users() {
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamForm, setTeamForm] = useState({ id: "", name: "", description: "", users: [] as string[] });
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
+  const [permissionForm, setPermissionForm] = useState<UserPermissions | null>(null);
+  const [savingPermissions, setSavingPermissions] = useState(false);
 
   const resetTeamForm = () => setTeamForm({ id: "", name: "", description: "", users: [] });
   const resetEditUserForm = () =>
@@ -334,7 +278,14 @@ export default function Users() {
   const handleClosePermissionsDialog = () => {
     setShowPermissionsDialog(false);
     setSelectedUser(null);
+    setPermissionForm(null);
   };
+
+  useEffect(() => {
+    if (showPermissionsDialog && selectedUser) {
+      setPermissionForm((selectedUser as any).permissions || defaultPermissions[selectedUser.role]);
+    }
+  }, [showPermissionsDialog, selectedUser]);
 
   useEffect(() => {
 
@@ -363,6 +314,7 @@ export default function Users() {
             lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
 
             isPending: Boolean((u as any).isPending),
+            permissions: (u as any).permissions,
 
           })),
 
@@ -646,12 +598,23 @@ const handleDeleteUser = async (userId: string) => {
 
   };
 
-
-
-const getUserPermissions = (userRole: UserRole) => {
-
-    return defaultPermissions[userRole];
-
+  const handleSavePermissions = async () => {
+    if (!selectedUser || !permissionForm) return;
+    try {
+      setSavingPermissions(true);
+      await usersService.update(selectedUser.id, { permissions: permissionForm } as any);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === selectedUser.id ? { ...u, permissions: permissionForm } : u,
+        ),
+      );
+      toast.success("Permissões atualizadas");
+      handleClosePermissionsDialog();
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao salvar permissões");
+    } finally {
+      setSavingPermissions(false);
+    }
   };
 
 
@@ -914,7 +877,7 @@ const startEditTeam = (teamId: string) => {
 
                   <Key className="h-4 w-4 mr-2" />
 
-                  Gerar C?digo
+                  Gerar Código
 
                 </Button>
 
@@ -1400,7 +1363,7 @@ const startEditTeam = (teamId: string) => {
 
                             <DropdownMenuContent align="end">
 
-                              <DropdownMenuLabel>Aes</DropdownMenuLabel>
+                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
 
                               <DropdownMenuItem
 
@@ -1419,7 +1382,9 @@ const startEditTeam = (teamId: string) => {
                                 onClick={() => {
 
                                   setSelectedUser(u);
-
+                                  setPermissionForm(
+                                    (u as any).permissions || defaultPermissions[u.role],
+                                  );
                                   setShowPermissionsDialog(true);
 
                                 }}
@@ -1987,7 +1952,7 @@ const startEditTeam = (teamId: string) => {
         </Dialog>
 
         {/* Permissions Dialog */}
-        <Dialog
+                <Dialog
           modal={false}
           open={showPermissionsDialog}
           onOpenChange={(open) => {
@@ -1995,136 +1960,93 @@ const startEditTeam = (teamId: string) => {
             if (!open) handleClosePermissionsDialog();
           }}
         >
-          <DialogContent
-            className="max-w-md max-h-[80vh] overflow-hidden flex flex-col"
-          >
-
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader className="flex-shrink-0">
-
-              <DialogTitle>Permissões do Usuário</DialogTitle>
-
+              <DialogTitle>Permissões do usuário</DialogTitle>
               <DialogDescription>
-
-                Permissões baseadas no cargo:{" "}
-
+                Ajuste as permissões individuais. Por padrão usamos o cargo: 
                 {selectedUser ? getRoleLabel(selectedUser.role) : ""}
-
               </DialogDescription>
-
             </DialogHeader>
 
             {selectedUser && (
-
               <div className="space-y-4 flex-1 overflow-hidden">
-
                 <div className="p-3 bg-gray-50 rounded-lg flex-shrink-0">
-
                   <div className="flex items-center gap-3">
-
                     <Avatar className="h-8 w-8">
-
                       <AvatarFallback className="text-xs">
-
                         {getInitials(selectedUser.name)}
-
                       </AvatarFallback>
-
                     </Avatar>
-
                     <div className="min-w-0 flex-1">
-
-                      <p className="font-medium text-sm truncate">
-
-                        {selectedUser.name}
-
-                      </p>
-
+                      <p className="font-medium text-sm truncate">{selectedUser.name}</p>
                       <p className="text-xs text-muted-foreground truncate">
-
                         {selectedUser.email}
-
                       </p>
-
                     </div>
-
                   </div>
-
                 </div>
-
-
 
                 <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-
-                  {Object.entries(getUserPermissions(selectedUser.role)).map(
-
-                    ([permission, hasAccess]) => (
-
-                      <div
-
-                        key={permission}
-
-                        className="flex items-center justify-between p-2 border rounded text-sm"
-
-                      >
-
-                        <div className="flex-1 min-w-0">
-
-                          <p className="font-medium text-xs truncate">
-
-                            {permission
-
-                              .replace("can", "")
-
-                              .replace(/([A-Z])/g, " $1")
-
-                              .trim()}
-
-                          </p>
-
-                        </div>
-
-                        <Badge
-
-                          variant={hasAccess ? "default" : "secondary"}
-
-                          className="text-xs py-0 px-2 ml-2 flex-shrink-0"
-
+                  {permissionForm ? (
+                    Object.entries(permissionForm).map(([permission, hasAccess]) => {
+                      const label =
+                        permissionLabels[permission as keyof UserPermissions] ||
+                        permission
+                          .replace("can", "")
+                          .replace(/([A-Z])/g, " $1")
+                          .trim();
+                      const canEdit = hasPermission("canManageUsers");
+                      return (
+                        <div
+                          key={permission}
+                          className="flex items-center justify-between p-2 border rounded text-sm"
                         >
-
-                          {hasAccess ? "" : ""}
-
-                        </Badge>
-
-                      </div>
-
-                    ),
-
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-xs truncate">{label}</p>
+                          </div>
+                          {canEdit ? (
+                            <Switch
+                              checked={hasAccess}
+                              onCheckedChange={(checked) =>
+                                setPermissionForm((prev) =>
+                                  prev ? { ...prev, [permission]: Boolean(checked) } : prev,
+                                )
+                              }
+                            />
+                          ) : (
+                            <Badge
+                              variant={hasAccess ? "default" : "secondary"}
+                              className="text-xs py-0 px-2 ml-2 flex-shrink-0"
+                            >
+                              {hasAccess ? "Permitido" : "Bloqueado"}
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Carregando permissões...</p>
                   )}
-
                 </div>
 
-
-
-                <Button
-
-                  onClick={() => setShowPermissionsDialog(false)}
-
-                  className="w-full flex-shrink-0"
-
-                  size="sm"
-
-                >
-
-                  Fechar
-
-                </Button>
-
+                <div className="flex gap-2 pt-2 sticky bottom-0 bg-white pb-2">
+                  <Button variant="outline" onClick={handleClosePermissionsDialog} className="flex-1">
+                    Cancelar
+                  </Button>
+                  {hasPermission("canManageUsers") && (
+                    <Button
+                      className="flex-1"
+                      onClick={handleSavePermissions}
+                      disabled={savingPermissions || !permissionForm}
+                    >
+                      {savingPermissions ? "Salvando..." : "Salvar permissões"}
+                    </Button>
+                  )}
+                </div>
               </div>
-
             )}
-
           </DialogContent>
-
         </Dialog>
 
       </div>
