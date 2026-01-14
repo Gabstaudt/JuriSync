@@ -40,6 +40,17 @@ const formatSize = (bytes: number) => {
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${sizes[i]}`;
 };
 
+const formatType = (fileName?: string, fileType?: string | null) => {
+  const fromName = fileName?.split(".").pop();
+  if (fromName) return fromName.toLowerCase();
+  if (fileType) {
+    const mimeTail = fileType.split("/").pop() || fileType;
+    const tailExt = mimeTail.split(".").pop() || mimeTail;
+    return tailExt.toLowerCase();
+  }
+  return "arquivo";
+};
+
 export default function Models() {
   const [templates, setTemplates] = useState<TemplateModel[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,6 +65,11 @@ export default function Models() {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const filtered = useMemo(() => templates, [templates]);
+  const actionLabels: Record<string, string> = {
+    create: "Criado",
+    update: "Editado",
+    delete: "Excluido",
+  };
 
   const loadTemplates = async (term?: string) => {
     setLoading(true);
@@ -180,7 +196,7 @@ export default function Models() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-lg">Enviar novo modelo</CardTitle>
             <p className="text-sm text-gray-500">
-              Aceita PDF, DOC, DOCX ou outros arquivos de refer\u00eancia para seus contratos.
+              Aceita PDF, DOC, DOCX ou outros arquivos de referencia para seus contratos.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -205,7 +221,7 @@ export default function Models() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-700">Descri\u00e7\u00e3o (opcional)</label>
+                <label className="text-sm text-gray-700">Descricao (opcional)</label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -227,7 +243,7 @@ export default function Models() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg">Modelos salvos</CardTitle>
-              <p className="text-sm text-gray-500">Cat\u00e1logo de documentos de refer\u00eancia.</p>
+              <p className="text-sm text-gray-500">Catalogo de documentos de referencia.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -258,7 +274,7 @@ export default function Models() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Tamanho</TableHead>
                     <TableHead>Enviado em</TableHead>
-                    <TableHead className="text-right">A\u00e7\u00f5es</TableHead>
+                    <TableHead className="text-right">Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,7 +291,7 @@ export default function Models() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{tpl.fileType || "Arquivo"}</TableCell>
+                      <TableCell>{formatType(tpl.fileName, tpl.fileType)}</TableCell>
                       <TableCell>{formatSize(Number(tpl.fileSize || 0))}</TableCell>
                       <TableCell>
                         {tpl.createdAt &&
@@ -296,16 +312,14 @@ export default function Models() {
                             className="text-blue-600 text-sm inline-flex items-center gap-1 hover:underline"
                             >
                               <Download className="h-4 w-4" />
-                              Baixar
                             </a>
                           )}
                           <Dialog open={editing?.id === tpl.id} onOpenChange={(open) => setEditing(open ? tpl : null)}>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-gray-700 hover:text-blue-700">
-                                <PencilLine className="h-4 w-4 mr-1" />
-                                Editar
-                              </Button>
-                            </DialogTrigger>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-gray-700 hover:text-blue-700">
+                              <PencilLine className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
                             <DialogContent>
                               <DialogHeader>
                                 <DialogTitle>Editar modelo</DialogTitle>
@@ -321,7 +335,7 @@ export default function Models() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-sm text-gray-700">Descri\u00e7\u00e3o</label>
+                                  <label className="text-sm text-gray-700">Descricao</label>
                                   <Textarea
                                     value={editing?.description || ""}
                                     onChange={(e) =>
@@ -344,16 +358,15 @@ export default function Models() {
                           </Dialog>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Excluir
+                              <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Excluir modelo</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Essa a\u00e7\u00e3o remove o modelo para todos os usu\u00e1rios do ecossistema. Deseja continuar?
+                                  Essa acao remove o modelo para todos os usuarios do ecossistema. Deseja continuar?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -376,12 +389,11 @@ export default function Models() {
                             }}
                           >
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-gray-700 hover:text-blue-700">
-                                <Info className="h-4 w-4 mr-1" />
-                                Detalhes
+                              <Button variant="ghost" size="icon" className="text-gray-700 hover:text-blue-700">
+                                <Info className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-h-[80vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Detalhes do modelo</DialogTitle>
                               </DialogHeader>
@@ -394,12 +406,12 @@ export default function Models() {
                                       <span className="font-medium">Nome:</span> {detail?.name}
                                     </p>
                                     <p>
-                                      <span className="font-medium">Descri\u00e7\u00e3o:</span>{" "}
-                                      {detail?.description || "Sem descri\u00e7\u00e3o"}
+                                      <span className="font-medium">Descricao:</span>{" "}
+                                      {detail?.description || "Sem descricao"}
                                     </p>
                                     <p>
                                       <span className="font-medium">Arquivo:</span> {detail?.fileName} (
-                                      {detail?.fileType})
+                                      {formatType(detail?.fileName, detail?.fileType)})
                                     </p>
                                     <p>
                                       <span className="font-medium">Tamanho:</span>{" "}
@@ -428,7 +440,7 @@ export default function Models() {
                                     )}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-gray-900 mb-2">Hist\u00f3rico</p>
+                                    <p className="text-sm font-medium text-gray-900 mb-2">Historico</p>
                                     {detailHistory.length === 0 ? (
                                       <p className="text-sm text-gray-500">Sem eventos registrados.</p>
                                     ) : (
@@ -436,7 +448,9 @@ export default function Models() {
                                         {detailHistory.map((h) => (
                                           <div key={h.id} className="rounded border border-gray-200 p-2 text-sm">
                                             <div className="flex justify-between text-gray-700">
-                                              <span className="font-medium capitalize">{h.action}</span>
+                                              <span className="font-medium">
+                                                {actionLabels[h.action] || h.action}
+                                              </span>
                                               <span className="text-xs text-gray-500">
                                                 {new Date(h.createdAt).toLocaleString("pt-BR")}
                                               </span>
