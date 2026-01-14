@@ -19,6 +19,7 @@ import FolderContracts from "./pages/FolderContracts";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Companies from "./pages/Companies";
+import Models from "./pages/Models";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import Tasks from "./pages/Tasks";
 
@@ -117,6 +118,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Companies />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/models"
+              element={
+                <ProtectedRoute>
+                  <Models />
                 </ProtectedRoute>
               }
             />

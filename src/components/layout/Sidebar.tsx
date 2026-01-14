@@ -13,13 +13,13 @@ import {
   Settings,
   BarChart3,
   Bell,
-  Archive,
   Shield,
   Plus,
   X,
   MessageSquare,
   Building2,
   ListChecks,
+  Archive,
 } from "lucide-react";
 import { chatService } from "@/lib/services/chat";
 
@@ -92,7 +92,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       badge: null,
     },
     {
-      label: "Análises",
+      label: "Modelos",
+      icon: Archive,
+      href: "/models",
+      badge: null,
+    },
+    {
+      label: "Analises",
       icon: BarChart3,
       href: "/analytics",
       badge: null,
@@ -102,14 +108,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const adminItems = [
     {
-      label: "Usuários",
+      label: "Usuarios",
       icon: Users,
       href: "/users",
       badge: null,
       permission: "canManageUsers",
     },
     {
-      label: "Configurações",
+      label: "Configuracoes",
       icon: Settings,
       href: "/settings",
       badge: null,
@@ -140,9 +146,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const isActive = (href: string) => {
-    return (
-      location.pathname === href || location.pathname.startsWith(href + "/")
-    );
+    return location.pathname === href || location.pathname.startsWith(href + "/");
   };
 
   return (
@@ -166,12 +170,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span className="text-xs text-gray-500">Ecossistema</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="lg:hidden"
-            >
+            <Button variant="ghost" size="sm" onClick={onClose} className="lg:hidden">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -190,12 +189,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {user?.name}
-                </p>
-                <p className="text-xs text-gray-500 truncate">
-                  {user?.department || "Sem departamento"}
-                </p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.department || "Sem departamento"}</p>
               </div>
             </div>
           </div>
@@ -203,14 +198,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Quick Actions */}
           <div className="px-6 py-4">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Ações Rápidas
+              Acoes Rapidas
             </h3>
             <div className="space-y-2">
               {quickActions.map((action) => {
-                if (
-                  action.permission &&
-                  !hasPermission(action.permission as any)
-                ) {
+                if (action.permission && !hasPermission(action.permission as any)) {
                   return null;
                 }
 
@@ -235,7 +227,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Navigation */}
           <nav className="flex-1 px-6 py-4 space-y-1">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Navegação
+              Navegacao
             </h3>
 
             {menuItems.map((item) => {
@@ -250,8 +242,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   variant={isActive(item.href) ? "secondary" : "ghost"}
                   className={cn(
                     "w-full justify-start text-left",
-                    isActive(item.href) &&
-                      "bg-blue-50 text-blue-700 border-blue-200",
+                    isActive(item.href) && "bg-blue-50 text-blue-700 border-blue-200",
                   )}
                   onClick={() => handleNavigation(item.href)}
                 >
@@ -276,14 +267,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <>
                 <Separator className="my-4" />
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  Administração
+                  Administracao
                 </h3>
 
                 {adminItems.map((item) => {
-                  if (
-                    item.permission &&
-                    !hasPermission(item.permission as any)
-                  ) {
+                  if (item.permission && !hasPermission(item.permission as any)) {
                     return null;
                   }
 
@@ -293,8 +281,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                       variant={isActive(item.href) ? "secondary" : "ghost"}
                       className={cn(
                         "w-full justify-start text-left",
-                        isActive(item.href) &&
-                          "bg-blue-50 text-blue-700 border-blue-200",
+                        isActive(item.href) && "bg-blue-50 text-blue-700 border-blue-200",
                       )}
                       onClick={() => handleNavigation(item.href)}
                     >
@@ -316,7 +303,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="px-6 py-4 border-t border-gray-200">
             <div className="text-xs text-gray-500 text-center">
               <p>JuriSync v1.0</p>
-              <p>© 2024 - Gestão Jurídica</p>
+              <p>(c) 2024 - Gestao Juridica</p>
             </div>
           </div>
         </div>
@@ -324,3 +311,4 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     </>
   );
 }
+
