@@ -81,6 +81,7 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    let mounted = true;
     const fetchContracts = async () => {
       try {
         setIsLoading(true);
@@ -94,17 +95,21 @@ export default function Dashboard() {
             updatedAt: new Date(c.updatedAt),
           })),
         );
-        setContracts(updatedContracts);
+        if (mounted) setContracts(updatedContracts);
       } catch (error: any) {
-        toast.error(error?.message || "Erro ao carregar contratos");
+        if (mounted) toast.error(error?.message || "Erro ao carregar contratos");
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
     fetchContracts();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     const fetchUsers = async () => {
       try {
         const data = await usersService.list();
@@ -114,12 +119,15 @@ export default function Dashboard() {
           updatedAt: new Date(u.updatedAt),
           lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
         }));
-        setUsers(parsed as unknown as User[]);
+        if (mounted) setUsers(parsed as unknown as User[]);
       } catch {
         // silently ignore for now
       }
     };
     fetchUsers();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Filter contracts

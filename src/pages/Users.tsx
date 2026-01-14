@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -156,24 +156,6 @@ const permissionLabels: Record<keyof UserPermissions, string> = {
 
 
 
-const getRoleLabel = (role: UserRole) => {
-
-  const labels = {
-
-    admin: "Administrador",
-
-    manager: "Gerente",
-
-    user: "Usuário",
-
-  };
-
-  return labels[role];
-
-};
-
-
-
 const getRoleColor = (role: UserRole) => {
 
   const colors = {
@@ -216,6 +198,7 @@ export default function Users() {
 
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
 
@@ -287,11 +270,24 @@ export default function Users() {
     }
   }, [showPermissionsDialog, selectedUser]);
 
+  // Memoized role labels and permission labels to reduce renders in large lists
+  const roleLabelMap = useMemo(
+    () => ({
+      admin: "Administrador",
+      manager: "Gerente",
+      user: "Usuário",
+    }),
+    [],
+  );
+
+  const getRoleLabel = useCallback((role: UserRole) => roleLabelMap[role], [roleLabelMap]);
+
   useEffect(() => {
 
     const fetchData = async () => {
       try {
         setLoadingData(true);
+        setErrorMessage(null);
 
         const [userData, invites] = await Promise.all([
 
@@ -344,7 +340,9 @@ export default function Users() {
 
       } catch (error: any) {
 
-        toast.error(error?.message || "Erro ao carregar usuários");
+        const msg = error?.message || "Erro ao carregar usuários";
+        setErrorMessage(msg);
+        toast.error(msg);
 
       }
       setLoadingData(false);
@@ -408,7 +406,9 @@ const generateInviteCode = () => {
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao criar código");
+      const msg = error?.message || "Erro ao criar código";
+      setErrorMessage(msg);
+      toast.error(msg);
 
     }
 
@@ -454,7 +454,9 @@ const generateInviteCode = () => {
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao criar usuário");
+      const msg = error?.message || "Erro ao criar usuário";
+      setErrorMessage(msg);
+      toast.error(msg);
 
     }
 
@@ -550,7 +552,9 @@ const handleEditUser = (userToEdit: User) => {
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao salvar usuário");
+      const msg = error?.message || "Erro ao salvar usuário";
+      setErrorMessage(msg);
+      toast.error(msg);
 
     }
 
@@ -592,7 +596,9 @@ const handleDeleteUser = async (userId: string) => {
 
     } catch (error: any) {
 
-      toast.error(error?.message || "Erro ao inativar usuário");
+      const msg = error?.message || "Erro ao inativar usuário";
+      setErrorMessage(msg);
+      toast.error(msg);
 
     }
 
@@ -1268,8 +1274,19 @@ const startEditTeam = (teamId: string) => {
                   </TableHeader>
 
                   <TableBody>
-
-                    {getFilteredUsers().map((u) => (
+                    {loadingData && (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <div className="space-y-2">
+                            <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
+                            <div className="h-4 bg-gray-100 rounded w-1/4 animate-pulse" />
+                            <div className="h-4 bg-gray-100 rounded w-1/5 animate-pulse" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {!loadingData &&
+                    getFilteredUsers().map((u) => (
 
                       <TableRow key={u.id}>
 
@@ -1480,8 +1497,19 @@ const startEditTeam = (teamId: string) => {
                   </TableHeader>
 
                   <TableBody>
-
-                    {inviteCodes.map((invite) => (
+                    {loadingData && (
+                      <TableRow>
+                        <TableCell colSpan={7}>
+                          <div className="space-y-2">
+                            <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
+                            <div className="h-4 bg-gray-100 rounded w-1/4 animate-pulse" />
+                            <div className="h-4 bg-gray-100 rounded w-1/5 animate-pulse" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {!loadingData &&
+                    inviteCodes.map((invite) => (
 
                       <TableRow key={invite.id}>
 

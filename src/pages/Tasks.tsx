@@ -185,6 +185,7 @@ const Tasks = () => {
   const [form, setForm] = useState<FormState>(defaultForm);
 
   useEffect(() => {
+    let mounted = true;
     const load = async () => {
       try {
         setLoading(true);
@@ -194,17 +195,23 @@ const Tasks = () => {
           contractsService.list(),
           usersService.list(),
         ]);
+        if (!mounted) return;
         setTasks(tasksRes || []);
         setFolders(foldersRes || []);
         setContracts(contractsRes || []);
         setUsers(usersRes || []);
       } catch (err: any) {
-        toast({ variant: "destructive", title: err?.message || "Erro ao carregar dados" });
+        if (mounted) {
+          toast({ variant: "destructive", title: err?.message || "Erro ao carregar dados" });
+        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     load();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {

@@ -74,12 +74,14 @@ export default function ContractDetails() {
     responsibleEmail: "",
   });
   useEffect(() => {
+    let mounted = true;
     const fetchData = async () => {
       if (!id) return;
       try {
         const c = await contractsService.get(id);
         const comments = await contractsService.comments.list(id);
         const history = await contractsService.history.list(id);
+        if (!mounted) return;
         setContract({
           ...c,
           startDate: new Date(c.startDate),
@@ -101,6 +103,7 @@ export default function ContractDetails() {
         });
         try {
           const userList = await usersService.list();
+          if (!mounted) return;
           setUsers(
             userList.map((u: any) => ({
               ...u,
@@ -109,18 +112,22 @@ export default function ContractDetails() {
             })),
           );
         } catch (userErr: any) {
+          if (!mounted) return;
           setUsers([]);
           if (userErr?.message && userErr.message !== "Acesso negado") {
             console.warn("Falha ao carregar usuários:", userErr.message);
           }
         }
       } catch (error: any) {
-        toast.error(error?.message || "Contrato não encontrado");
+        if (mounted) toast.error(error?.message || "Contrato não encontrado");
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
     fetchData();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
   const fileInfo = contract?.attachments?.[0] || null;
   const fileName = contract?.fileName || fileInfo?.fileName || fileInfo?.name;

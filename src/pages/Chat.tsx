@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Layout } from "@/components/layout/Layout";
 
@@ -89,6 +89,7 @@ export default function Chat() {
   >([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const location = useLocation();
+  const mountedRef = useRef(true);
 
 
   const selectedConversation = useMemo(
@@ -108,6 +109,8 @@ export default function Chat() {
     try {
 
       const data = await chatService.listConversations();
+
+      if (!mountedRef.current) return;
 
       setConversations(data);
 
@@ -129,11 +132,19 @@ export default function Chat() {
 
     } catch (e: any) {
 
-      toast.error(e?.message || "Erro ao carregar conversas");
+      if (mountedRef.current) {
+
+        toast.error(e?.message || "Erro ao carregar conversas");
+
+      }
 
     } finally {
 
-      setLoadingConversations(false);
+      if (mountedRef.current) {
+
+        setLoadingConversations(false);
+
+      }
 
     }
 
@@ -149,20 +160,37 @@ export default function Chat() {
 
       const data = await chatService.listMessages(conversationId);
 
+      if (!mountedRef.current) return;
+
       setMessages(data);
 
     } catch (e: any) {
 
-      toast.error(e?.message || "Erro ao carregar mensagens");
+      if (mountedRef.current) {
+
+        toast.error(e?.message || "Erro ao carregar mensagens");
+
+      }
 
     } finally {
 
-      setLoadingMessages(false);
+      if (mountedRef.current) {
+
+        setLoadingMessages(false);
+
+      }
 
     }
 
   };
 
+  useEffect(() => {
+
+    return () => {
+      mountedRef.current = false;
+    };
+
+  }, []);
 
 
   useEffect(() => {
@@ -178,6 +206,7 @@ export default function Chat() {
       setLoadingUsers(true);
       try {
         const data = await usersService.list();
+        if (!mountedRef.current) return;
         const mapped = data
 
           .filter((u) => u.id && u.id !== user?.id)
@@ -196,17 +225,24 @@ export default function Chat() {
 
         setUsers(mapped);
       } catch (e: any) {
-        toast.error(e?.message || "Erro ao carregar usuarios do ecossistema");
+        if (mountedRef.current) {
+          toast.error(e?.message || "Erro ao carregar usuarios do ecossistema");
+        }
       } finally {
-        setLoadingUsers(false);
+        if (mountedRef.current) {
+          setLoadingUsers(false);
+        }
       }
     };
     const loadTeams = async () => {
       try {
         const data = await teamsService.list();
+        if (!mountedRef.current) return;
         setTeams(data || []);
       } catch (e: any) {
-        toast.error(e?.message || "Erro ao carregar equipes");
+        if (mountedRef.current) {
+          toast.error(e?.message || "Erro ao carregar equipes");
+        }
       }
     };
     loadUsers();
@@ -245,6 +281,7 @@ export default function Chat() {
         targetType === "team"
           ? await chatService.createTeamConversation(targetTeamId.trim())
           : await chatService.createConversation([targetUserId.trim()]);
+      if (!mountedRef.current) return;
       setTargetUserId("");
       setTargetTeamId("");
       await loadConversations();
@@ -254,7 +291,9 @@ export default function Chat() {
     } catch (e: any) {
       toast.error(e?.message || "Erro ao criar conversa");
     } finally {
-      setCreating(false);
+      if (mountedRef.current) {
+        setCreating(false);
+      }
     }
   };
 
@@ -265,6 +304,7 @@ export default function Chat() {
     setCreating(true);
     try {
       const { id } = await chatService.createConversation([userId]);
+      if (!mountedRef.current) return;
       await loadConversations();
       setSelectedId(id);
       await loadMessages(id);
@@ -272,7 +312,9 @@ export default function Chat() {
     } catch (e: any) {
       toast.error(e?.message || "Erro ao abrir conversa");
     } finally {
-      setCreating(false);
+      if (mountedRef.current) {
+        setCreating(false);
+      }
     }
   };
 
@@ -283,6 +325,7 @@ export default function Chat() {
     setCreating(true);
     try {
       const { id } = await chatService.createTeamConversation(teamId);
+      if (!mountedRef.current) return;
       await loadConversations();
       setSelectedId(id);
       await loadMessages(id);
@@ -290,7 +333,9 @@ export default function Chat() {
     } catch (e: any) {
       toast.error(e?.message || "Erro ao abrir conversa da equipe");
     } finally {
-      setCreating(false);
+      if (mountedRef.current) {
+        setCreating(false);
+      }
     }
   };
 
@@ -334,6 +379,7 @@ export default function Chat() {
         attachments: uploaded,
 
       });
+      if (!mountedRef.current) return;
 
       setMessages((prev) => [...prev, message]);
 
@@ -349,7 +395,9 @@ export default function Chat() {
 
     } finally {
 
-      setSending(false);
+      if (mountedRef.current) {
+        setSending(false);
+      }
 
     }
 

@@ -410,31 +410,36 @@ export default function Folders() {
   const visibleFolders = useMemo(() => folders, [folders]);
 
   useEffect(() => {
+    let mounted = true;
     const fetchFolders = async () => {
       setLoading(true);
       try {
         const data = await foldersService.list();
-        const parsed = Array.isArray(data)
-          ? data.map(parseFolder)
-          : [];
+        if (!mounted) return;
+        const parsed = Array.isArray(data) ? data.map(parseFolder) : [];
         setFolders(parsed);
       } catch (error: any) {
+        if (!mounted) return;
         toast.error(error?.message || "Erro ao carregar pastas");
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
-    fetchFolders();
-
     const fetchUsers = async () => {
       try {
         const data = await usersService.list();
+        if (!mounted) return;
         setUsers(data);
       } catch (error: any) {
+        if (!mounted) return;
         console.error("Erro ao carregar usuarios", error?.message);
       }
     };
+    fetchFolders();
     fetchUsers();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const openCreateDialog = () => {
@@ -784,7 +789,7 @@ export default function Folders() {
                         </div>
                       </div>
                     </div>
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"

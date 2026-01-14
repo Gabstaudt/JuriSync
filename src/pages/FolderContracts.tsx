@@ -53,6 +53,7 @@ export default function FolderContracts() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const loadData = async () => {
       if (!folderId) return;
       try {
@@ -62,7 +63,7 @@ export default function FolderContracts() {
           foldersService.contracts(folderId),
         ]);
 
-        if (folderData) {
+        if (mounted && folderData) {
           setFolder({
             ...folderData,
             createdAt: new Date(folderData.createdAt),
@@ -80,16 +81,22 @@ export default function FolderContracts() {
             }))
           : [];
 
-        setContracts(parsedContracts);
-        setFilteredContracts(parsedContracts);
+        if (mounted) {
+          setContracts(parsedContracts);
+          setFilteredContracts(parsedContracts);
+        }
       } catch (error: any) {
-        toast.error(error?.message || "Erro ao carregar dados da pasta");
+        if (mounted) toast.error(error?.message || "Erro ao carregar dados da pasta");
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     loadData();
+
+    return () => {
+      mounted = false;
+    };
   }, [folderId]);
 
   useEffect(() => {
