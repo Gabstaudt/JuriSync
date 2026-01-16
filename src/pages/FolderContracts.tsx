@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Contract, ContractFilters } from "@/types/contract";
+import { Process } from "@/types/process";
 import { Folder } from "@/types/folder";
 import { filterContracts, formatCurrency } from "@/lib/contracts";
 import { ContractTable } from "@/components/contracts/ContractTable";
@@ -39,7 +40,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { foldersService } from "@/lib/services/folders";
-import { contractsService } from "@/lib/services/contracts";
 
 export default function FolderContracts() {
   const { folderId } = useParams<{ folderId: string }>();
@@ -48,8 +48,10 @@ export default function FolderContracts() {
   const [folder, setFolder] = useState<Folder | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
+  const [processes, setProcesses] = useState<Process[]>([]);
   const [filters, setFilters] = useState<ContractFilters>({});
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [contentMode, setContentMode] = useState<"contracts" | "processes">("contracts");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -58,9 +60,10 @@ export default function FolderContracts() {
       if (!folderId) return;
       try {
         setIsLoading(true);
-        const [folderData, contractsData] = await Promise.all([
+        const [folderData, contractsData, processesData] = await Promise.all([
           foldersService.get(folderId),
           foldersService.contracts(folderId),
+          foldersService.processes(folderId),
         ]);
 
         if (mounted && folderData) {
@@ -84,6 +87,7 @@ export default function FolderContracts() {
         if (mounted) {
           setContracts(parsedContracts);
           setFilteredContracts(parsedContracts);
+          setProcesses(Array.isArray(processesData) ? processesData : []);
         }
       } catch (error: any) {
         if (mounted) toast.error(error?.message || "Erro ao carregar dados da pasta");
@@ -164,13 +168,13 @@ export default function FolderContracts() {
         <div className="flex items-center justify-center min-h-[500px]">
           <div className="text-center">
             <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Pasta não encontrada</h2>
+            <h2 className="text-xl font-semibold mb-2">Pasta nao encontrada</h2>
             <p className="text-muted-foreground mb-4">
-              A pasta solicitada não existe ou foi removida.
+              A pasta solicitada nao existe ou foi removida.
             </p>
             <Button onClick={() => navigate("/folders")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar às Pastas
+              Voltar as Pastas
             </Button>
           </div>
         </div>
@@ -188,7 +192,7 @@ export default function FolderContracts() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate("/folders")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar às Pastas
+            Voltar as Pastas
           </Button>
           <div className="flex items-center gap-3 flex-1">
             <div
@@ -203,7 +207,7 @@ export default function FolderContracts() {
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-gray-600">
-                  {folder.description || "Sem descrição"}
+                  {folder.description || "Sem descricao"}
                 </p>
                 <Badge
                   variant={folder.type === "system" ? "secondary" : "outline"}
@@ -215,12 +219,18 @@ export default function FolderContracts() {
             </div>
           </div>
 
-          {hasPermission("canCreateContracts") && (
-            <Button onClick={() => navigate("/contracts/new")}>
+          <div className="flex items-center gap-2">
+            {hasPermission("canCreateContracts") && (
+              <Button onClick={() => navigate("/contracts/new")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Contrato
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => navigate("/processes")}>
               <Plus className="h-4 w-4 mr-2" />
-              Novo Contrato
+              Novo Processo
             </Button>
-          )}
+          </div>
         </div>
 
         {/* Stats */}
@@ -267,7 +277,7 @@ export default function FolderContracts() {
                 {statusCounts.expiring}
               </div>
               <p className="text-xs text-muted-foreground">
-                próximos ao vencimento
+                proximos ao vencimento
               </p>
             </CardContent>
           </Card>
@@ -292,23 +302,43 @@ export default function FolderContracts() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
-              variant={viewMode === "table" ? "default" : "outline"}
+              variant={contentMode === "contracts" ? "default" : "outline"}
               size="sm"
-              onClick={() => setViewMode("table")}
+              onClick={() => setContentMode("contracts")}
             >
-              <TableIcon className="h-4 w-4" />
+              Contratos
             </Button>
             <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
+              variant={contentMode === "processes" ? "default" : "outline"}
               size="sm"
-              onClick={() => setViewMode("grid")}
+              onClick={() => setContentMode("processes")}
             >
-              <Grid3X3 className="h-4 w-4" />
+              Processos
             </Button>
+            {contentMode === "contracts" && (
+              <>
+                <Button
+                  variant={viewMode === "table" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                >
+                  <TableIcon className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "grid" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="text-sm text-muted-foreground">
-            {filteredContracts.length} de {contracts.length} contratos
+            {contentMode === "contracts"
+              ? `${filteredContracts.length} de ${contracts.length} contratos`
+              : `${processes.length} processos`}
           </div>
         </div>
 
@@ -326,48 +356,73 @@ export default function FolderContracts() {
 
           {/* Contracts */}
           <div className="lg:col-span-3">
-            {contracts.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <div
-                    className="w-16 h-16 rounded-lg flex items-center justify-center text-white mb-4"
-                    style={{ backgroundColor: folder.color }}
-                  >
-                    <IconComponent className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Pasta vazia</h3>
-                  <p className="text-muted-foreground text-center mb-6">
-                    Esta pasta ainda não possui contratos. Comece criando um
-                    novo contrato.
-                  </p>
-                  {hasPermission("canCreateContracts") && (
-                    <Button onClick={() => navigate("/contracts/new")}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar Primeiro Contrato
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : filteredContracts.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    Nenhum contrato encontrado
-                  </h3>
-                  <p className="text-muted-foreground text-center">
-                    Ajuste os filtros para encontrar os contratos desejados.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : viewMode === "table" ? (
-              <ContractTable contracts={filteredContracts} />
+            {contentMode === "processes" ? (
+              processes.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nenhum processo encontrado</h3>
+                    <p className="text-muted-foreground text-center">
+                      Esta pasta ainda nao possui processos vinculados.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {processes.map((p) => (
+                    <Card key={p.id} className="flex flex-col">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{p.title}</CardTitle>
+                        <CardDescription>{p.description || "Sem descricao"}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">Status: {p.status}</CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredContracts.map((contract) => (
-                  <ContractCard key={contract.id} contract={contract} />
-                ))}
-              </div>
+              contracts.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <div
+                      className="w-16 h-16 rounded-lg flex items-center justify-center text-white mb-4"
+                      style={{ backgroundColor: folder.color }}
+                    >
+                      <IconComponent className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Pasta vazia</h3>
+                    <p className="text-muted-foreground text-center mb-6">
+                      Esta pasta ainda nao possui contratos. Comece criando um novo contrato.
+                    </p>
+                    {hasPermission("canCreateContracts") && (
+                      <Button onClick={() => navigate("/contracts/new")}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Primeiro Contrato
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : filteredContracts.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      Nenhum contrato encontrado
+                    </h3>
+                    <p className="text-muted-foreground text-center">
+                      Ajuste os filtros para encontrar os contratos desejados.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : viewMode === "table" ? (
+                <ContractTable contracts={filteredContracts} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredContracts.map((contract) => (
+                    <ContractCard key={contract.id} contract={contract} />
+                  ))}
+                </div>
+              )
             )}
           </div>
         </div>
@@ -386,7 +441,7 @@ export default function FolderContracts() {
                   {new Date(folder.createdAt).toLocaleDateString("pt-BR")}
                 </span>
                 <span>
-                  Última atualização:{" "}
+                  Ultima atualizacao: 
                   {new Date(folder.updatedAt).toLocaleDateString("pt-BR")}
                 </span>
               </div>
@@ -397,3 +452,7 @@ export default function FolderContracts() {
     </Layout>
   );
 }
+
+
+
+

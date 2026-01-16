@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   FileText,
+  Gavel,
   LayoutDashboard,
   FolderOpen,
   Users,
@@ -66,6 +67,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: FileText,
       href: "/contracts",
       badge: "12",
+    },
+    {
+      label: "Processos",
+      icon: Gavel,
+      href: "/processes",
+      badge: null,
     },
     {
       label: "Pastas",
@@ -158,7 +165,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0">
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
@@ -225,7 +232,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Separator />
 
           {/* Navigation */}
-          <nav className="flex-1 px-6 py-4 space-y-1">
+          <nav className="flex-1 px-6 py-4 space-y-1 overflow-y-auto">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
               Navegacao
             </h3>
@@ -311,4 +318,3 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     </>
   );
 }
-
