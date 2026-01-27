@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Contract, ContractFilters } from "@/types/contract";
-import { Folder } from "@/types/folder";
+import { Folder, FolderPermissions, folderColors, folderIcons } from "@/types/folder";
 import { filterContracts, formatCurrency } from "@/lib/contracts";
 import { ContractTable } from "@/components/contracts/ContractTable";
 import { ContractCard } from "@/components/contracts/ContractCard";
@@ -17,6 +17,17 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeft,
   FolderOpen,
@@ -36,27 +47,89 @@ import {
   Lock,
   Globe,
   Zap,
+  ChevronsUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { foldersService } from "@/lib/services/folders";
 import { contractsService } from "@/lib/services/contracts";
+import { usersService } from "@/lib/services/users";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { User, UserRole } from "@/types/auth";
 
 export default function FolderContracts() {
   const { folderId } = useParams<{ folderId: string }>();
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
   const [folder, setFolder] = useState<Folder | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
   const [filters, setFilters] = useState<ContractFilters>({});
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    description: string;
+    color: string;
+    icon: string;
+    permissions: FolderPermissions;
+  }>({
+    name: "",
+    description: "",
+    color: folderColors[0],
+    icon: folderIcons[0],
+    permissions: {
+      isPublic: true,
+      canView: [],
+      canEdit: [],
+      canManage: [],
+      viewRoles: ["admin", "manager", "user"],
+      editRoles: ["admin", "manager"],
+      manageRoles: ["admin"],
+    },
+  });
+  const [permissionMode, setPermissionMode] = useState<"all" | "roles" | "custom">("all");
 
   useEffect(() => {
     const loadData = async () => {
       if (!folderId) return;
       try {
         setIsLoading(true);
+        setLoadError(null);
         const [folderData, contractsData] = await Promise.all([
           foldersService.get(folderId),
           foldersService.contracts(folderId),
@@ -83,7 +156,9 @@ export default function FolderContracts() {
         setContracts(parsedContracts);
         setFilteredContracts(parsedContracts);
       } catch (error: any) {
-        toast.error(error?.message || "Erro ao carregar dados da pasta");
+        const msg = error?.message || "Erro ao carregar dados da pasta";
+        setLoadError(msg);
+        toast.error(msg);
       } finally {
         setIsLoading(false);
       }
@@ -96,6 +171,18 @@ export default function FolderContracts() {
     const filtered = filterContracts(contracts, filters);
     setFilteredContracts(filtered);
   }, [contracts, filters]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await usersService.list();
+        setUsers(data);
+      } catch (error: any) {
+        console.error("Erro ao carregar usuarios", error?.message);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const getIconComponent = (iconName: string) => {
     const icons: Record<string, any> = {
@@ -128,6 +215,23 @@ export default function FolderContracts() {
         .length,
       expired: filteredContracts.filter((c) => c.status === "expired").length,
     };
+  };
+
+  const normalizePermissions = (p?: Partial<FolderPermissions>): FolderPermissions => ({
+    isPublic: Boolean(p?.isPublic ?? true),
+    canView: Array.isArray(p?.canView) ? p!.canView : [],
+    canEdit: Array.isArray(p?.canEdit) ? p!.canEdit : [],
+    canManage: Array.isArray(p?.canManage) ? p!.canManage : [],
+    viewRoles: Array.isArray((p as any)?.viewRoles) ? (p as any).viewRoles : [],
+    editRoles: Array.isArray((p as any)?.editRoles) ? (p as any).editRoles : [],
+    manageRoles: Array.isArray((p as any)?.manageRoles) ? (p as any).manageRoles : [],
+  });
+
+  const derivePermissionMode = (perms: FolderPermissions): "all" | "roles" | "custom" => {
+    if (perms.isPublic) return "all";
+    const hasCustomIds =
+      perms.canView.length || perms.canEdit.length || perms.canManage.length;
+    return hasCustomIds ? "custom" : "roles";
   };
 
   // Get unique values for filters
@@ -173,6 +277,104 @@ export default function FolderContracts() {
 
   const IconComponent = getIconComponent(folder.icon);
   const statusCounts = getStatusCounts();
+  const canManageFolder = () => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    const perms = normalizePermissions((folder as any).permissions);
+    const roleAllowed = (perms.manageRoles || []).includes(user.role as UserRole);
+    const idAllowed = (perms.canManage || []).includes(user.id);
+    return (hasPermission("canManageFolders") || user.role === "manager") && (roleAllowed || idAllowed);
+  };
+  const handleDelete = async () => {
+    if (!folder) return;
+    setIsDeleting(true);
+    try {
+      await foldersService.delete(folder.id);
+      toast.success("Pasta excluida");
+      navigate("/folders");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao excluir pasta");
+    } finally {
+      setIsDeleting(false);
+      setDeleteOpen(false);
+    }
+  };
+
+  const openEditModal = () => {
+    if (!folder) return;
+    const perms = normalizePermissions((folder as any).permissions);
+    setEditForm({
+      name: folder.name || "",
+      description: folder.description || "",
+      color: folder.color || folderColors[0],
+      icon: folder.icon || folderIcons[0],
+      permissions: perms,
+    });
+    setPermissionMode(derivePermissionMode(perms));
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!folder) return;
+    if (!editForm.name.trim()) {
+      toast.error("Nome da pasta é obrigatório");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      const perms = normalizePermissions(editForm.permissions);
+      const payloadPermissions =
+        permissionMode === "all"
+          ? {
+              ...perms,
+              isPublic: true,
+              canView: [],
+              canEdit: [],
+              canManage: [],
+              viewRoles: ["admin", "manager", "user"],
+              editRoles: ["admin", "manager"],
+              manageRoles: ["admin"],
+            }
+          : permissionMode === "roles"
+            ? {
+                ...perms,
+                isPublic: false,
+                canView: [],
+                canEdit: [],
+                canManage: [],
+                viewRoles: perms.viewRoles.length ? perms.viewRoles : ["admin", "manager"],
+                editRoles: perms.editRoles.length ? perms.editRoles : ["admin", "manager"],
+                manageRoles: perms.manageRoles.length ? perms.manageRoles : ["admin"],
+              }
+            : {
+                ...perms,
+                isPublic: false,
+                viewRoles: perms.viewRoles,
+                editRoles: perms.editRoles,
+                manageRoles: perms.manageRoles.length ? perms.manageRoles : ["admin"],
+              };
+
+      const updated = await foldersService.update(folder.id, {
+        name: editForm.name.trim(),
+        description: editForm.description,
+        color: editForm.color,
+        icon: editForm.icon,
+        permissions: payloadPermissions,
+      });
+      const parsed: Folder = {
+        ...updated,
+        createdAt: new Date(updated.createdAt),
+        updatedAt: new Date(updated.updatedAt),
+      } as Folder;
+      setFolder(parsed);
+      toast.success("Pasta atualizada");
+      setEditOpen(false);
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao salvar pasta");
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   return (
     <Layout>
@@ -206,14 +408,28 @@ export default function FolderContracts() {
                 </Badge>
               </div>
             </div>
-          </div>
+        </div>
 
+        <div className="flex items-center gap-2">
+          {canManageFolder() && (
+            <>
+              <Button variant="outline" onClick={openEditModal}>
+                Editar
+              </Button>
+              {folder.type !== "system" && (
+                <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+                  Excluir
+                </Button>
+              )}
+            </>
+          )}
           {hasPermission("canCreateContracts") && (
             <Button onClick={() => navigate("/contracts/new")}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Contrato
             </Button>
           )}
+          </div>
         </div>
 
         {/* Stats */}
@@ -387,6 +603,355 @@ export default function FolderContracts() {
           </Card>
         )}
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pasta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirme para remover a pasta "{folder?.name}". Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteOpen(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Excluindo..." : "Confirmar exclusão"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar pasta</DialogTitle>
+            <DialogDescription>Atualize nome, descrição e visual da pasta.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="folder-name">Nome</Label>
+              <Input
+                id="folder-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="folder-desc">Descrição</Label>
+              <Textarea
+                id="folder-desc"
+                value={editForm.description}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <Select
+                  value={editForm.color}
+                  onValueChange={(val) => setEditForm((prev) => ({ ...prev, color: val }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block w-4 h-4 rounded"
+                          style={{ backgroundColor: editForm.color }}
+                        />
+                        {editForm.color}
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folderColors.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-4 h-4 rounded" style={{ backgroundColor: c }} />
+                          {c}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Icone</Label>
+                <Select
+                  value={editForm.icon}
+                  onValueChange={(val) => setEditForm((prev) => ({ ...prev, icon: val }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const Icon = getIconComponent(editForm.icon);
+                          return <Icon className="h-4 w-4" />;
+                        })()}
+                        {editForm.icon}
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folderIcons.map((icon) => (
+                      <SelectItem key={icon} value={icon}>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const Icon = getIconComponent(icon);
+                            return <Icon className="h-4 w-4" />;
+                          })()}
+                          {icon}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <PermissionsSection
+              mode={permissionMode}
+              onModeChange={setPermissionMode}
+              permissions={normalizePermissions(editForm.permissions)}
+              onPermissionsChange={(p) => setEditForm((prev) => ({ ...prev, permissions: p }))}
+              users={users}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
+
+const roleOptions: { value: UserRole; label: string }[] = [
+  { value: "admin", label: "Admins" },
+  { value: "manager", label: "Gerentes" },
+  { value: "user", label: "Usuarios" },
+];
+
+const MultiUserSelector = ({
+  label,
+  selectedIds,
+  users,
+  onChange,
+}: {
+  label: string;
+  selectedIds: string[];
+  users: User[];
+  onChange: (ids: string[]) => void;
+}) => {
+  const toggle = (id: string) => {
+    const set = new Set(selectedIds);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    onChange(Array.from(set));
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full justify-between h-10 text-sm">
+            <span>
+              {selectedIds.length
+                ? `${selectedIds.length} selecionado(s)`
+                : "usuarios"}
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0 w-80 max-h-72 overflow-y-auto">
+          <Command>
+            <CommandInput placeholder="Buscar usuario..." />
+            <CommandList>
+              <CommandEmpty>Nenhum usuario encontrado</CommandEmpty>
+              <CommandGroup>
+                {users.map((u) => (
+                  <CommandItem
+                    key={u.id}
+                    onSelect={() => toggle(u.id)}
+                    className="flex items-start gap-2 px-3 py-2"
+                  >
+                    <Checkbox
+                      checked={selectedIds.includes(u.id)}
+                      className="mt-0.5 h-4 w-4"
+                      onCheckedChange={() => toggle(u.id)}
+                    />
+                    <div>
+                      <div className="text-sm font-medium leading-tight">
+                        {u.name || u.email}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {u.email}
+                      </div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <div className="flex flex-wrap gap-2">
+        {selectedIds.map((id) => {
+          const user = users.find((u) => u.id === id);
+          return (
+            <Badge key={id} variant="secondary" className="h-6 text-xs px-2">
+              {user?.name || user?.email || id}
+            </Badge>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const PermissionsSection = ({
+  mode,
+  onModeChange,
+  permissions,
+  onPermissionsChange,
+  users,
+}: {
+  mode: "all" | "roles" | "custom";
+  onModeChange: (m: "all" | "roles" | "custom") => void;
+  permissions: FolderPermissions;
+  onPermissionsChange: (p: FolderPermissions) => void;
+  users: User[];
+}) => {
+  const toggleRole = (field: "viewRoles" | "editRoles" | "manageRoles", role: UserRole) => {
+    const current = new Set((permissions as any)[field] || []);
+    if (current.has(role)) current.delete(role);
+    else current.add(role);
+    onPermissionsChange({ ...permissions, [field]: Array.from(current) });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label>Quem pode visualizar esta pasta?</Label>
+        <div className="grid gap-2 md:grid-cols-3">
+          <Label className="flex gap-2 items-center border rounded-md px-3 py-2 cursor-pointer">
+            <Checkbox
+              checked={mode === "all"}
+              onCheckedChange={() => onModeChange("all")}
+            />
+            <div>
+              <div className="font-medium">Todos</div>
+              <div className="text-xs text-muted-foreground">
+                Visivel para todos do ecossistema
+              </div>
+            </div>
+          </Label>
+          <Label className="flex gap-2 items-center border rounded-md px-3 py-2 cursor-pointer">
+            <Checkbox
+              checked={mode === "roles"}
+              onCheckedChange={() => onModeChange("roles")}
+            />
+            <div>
+              <div className="font-medium">Por papel</div>
+              <div className="text-xs text-muted-foreground">
+                Admins, gerentes ou usuarios
+              </div>
+            </div>
+          </Label>
+          <Label className="flex gap-2 items-center border rounded-md px-3 py-2 cursor-pointer">
+            <Checkbox
+              checked={mode === "custom"}
+              onCheckedChange={() => onModeChange("custom")}
+            />
+            <div>
+              <div className="font-medium">Personalizado</div>
+              <div className="text-xs text-muted-foreground">
+                Papeis + IDs especificos
+              </div>
+            </div>
+          </Label>
+        </div>
+      </div>
+
+      {mode !== "all" && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label>Visualizar</Label>
+            <div className="space-y-2">
+              {roleOptions.map((opt) => (
+                <label key={`view-${opt.value}`} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={(permissions as any).viewRoles?.includes(opt.value)}
+                    onCheckedChange={() => toggleRole("viewRoles", opt.value)}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Editar</Label>
+            <div className="space-y-2">
+              {roleOptions.map((opt) => (
+                <label key={`edit-${opt.value}`} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={(permissions as any).editRoles?.includes(opt.value)}
+                    onCheckedChange={() => toggleRole("editRoles", opt.value)}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Gerenciar</Label>
+            <div className="space-y-2">
+              {roleOptions.map((opt) => (
+                <label key={`manage-${opt.value}`} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={(permissions as any).manageRoles?.includes(opt.value)}
+                    onCheckedChange={() => toggleRole("manageRoles", opt.value)}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === "custom" && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <MultiUserSelector
+            label="Usuarios que podem visualizar"
+            users={users}
+            selectedIds={permissions.canView || []}
+            onChange={(ids) => onPermissionsChange({ ...permissions, canView: ids })}
+          />
+          <MultiUserSelector
+            label="Usuarios que podem editar"
+            users={users}
+            selectedIds={permissions.canEdit || []}
+            onChange={(ids) => onPermissionsChange({ ...permissions, canEdit: ids })}
+          />
+          <MultiUserSelector
+            label="Usuarios que podem gerenciar"
+            users={users}
+            selectedIds={permissions.canManage || []}
+            onChange={(ids) => onPermissionsChange({ ...permissions, canManage: ids })}
+          />
+        </div>
+      )}
+    </div>
+  );
+};

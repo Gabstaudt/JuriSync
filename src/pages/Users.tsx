@@ -497,7 +497,7 @@ const getUserPermissions = (userRole: UserRole) => {
 
         {/* Novo usuário modal */}
         <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Adicionar usuário</DialogTitle>
               <DialogDescription>
