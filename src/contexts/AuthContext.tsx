@@ -31,6 +31,7 @@ const parseUser = (u: PublicUser): User => ({
   department: u.department || undefined,
   phone: u.phone || undefined,
   inviteCode: u.inviteCode || undefined,
+  permissions: (u as any).permissions || undefined,
   isActive: u.isActive,
   emailVerified: u.emailVerified ?? false,
   createdAt: new Date(u.createdAt),
@@ -138,7 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = (permission: keyof UserPermissions): boolean => {
     if (!authState.user) return false;
-    return defaultPermissions[authState.user.role][permission];
+    const perms =
+      (authState.user.permissions as any) ||
+      defaultPermissions[authState.user.role];
+    return Boolean(perms?.[permission]);
   };
 
   const refreshUser = async (): Promise<void> => {

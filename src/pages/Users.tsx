@@ -68,10 +68,12 @@ import { usersService, accessCodeService } from "@/lib/services/users";
 
 const defaultPermissions: Record<UserRole, UserPermissions> = {
   admin: {
+    canViewContracts: true,
     canCreateContracts: true,
     canEditContracts: true,
     canDeleteContracts: true,
     canManageUsers: true,
+    canCreateFolders: true,
     canManageFolders: true,
     canAccessAnalytics: true,
     canExportData: true,
@@ -79,10 +81,12 @@ const defaultPermissions: Record<UserRole, UserPermissions> = {
     canManageSystem: true,
   },
   manager: {
+    canViewContracts: true,
     canCreateContracts: true,
     canEditContracts: true,
     canDeleteContracts: false,
     canManageUsers: false,
+    canCreateFolders: true,
     canManageFolders: true,
     canAccessAnalytics: true,
     canExportData: true,
@@ -90,10 +94,12 @@ const defaultPermissions: Record<UserRole, UserPermissions> = {
     canManageSystem: false,
   },
   user: {
+    canViewContracts: true,
     canCreateContracts: false,
     canEditContracts: false,
     canDeleteContracts: false,
     canManageUsers: false,
+    canCreateFolders: false,
     canManageFolders: false,
     canAccessAnalytics: false,
     canExportData: false,
@@ -120,6 +126,23 @@ const getRoleColor = (role: UserRole) => {
   return colors[role];
 };
 
+const getPermissionLabel = (permission: string) => {
+  const map: Record<string, string> = {
+    canViewContracts: "Ver contratos",
+    canCreateContracts: "Criar contratos",
+    canEditContracts: "Editar contratos",
+    canDeleteContracts: "Excluir contratos",
+    canManageUsers: "Gerenciar usuários",
+    canCreateFolders: "Criar pastas",
+    canManageFolders: "Gerenciar pastas",
+    canExportData: "Exportar dados",
+    canManageNotifications: "Gerenciar notificações",
+    canAccessAnalytics: "Acessar analytics",
+    canManageSystem: "Administrar sistema",
+  };
+  return map[permission] || permission;
+};
+
 const getInitials = (name: string) =>
   name
     .split(" ")
@@ -137,6 +160,7 @@ export default function Users() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [permissionsDraft, setPermissionsDraft] = useState<UserPermissions | null>(null);
   const [editUserData, setEditUserData] = useState({
     name: "",
     email: "",
@@ -148,7 +172,9 @@ export default function Users() {
   const [newInvite, setNewInvite] = useState({
     role: "user" as UserRole,
     expiresAt: "",
+    maxUses: "1",
   });
+  const [inviteToDelete, setInviteToDelete] = useState<InviteCode | null>(null);
   const [newUserData, setNewUserData] = useState({
     name: "",
     email: "",
@@ -157,6 +183,46 @@ export default function Users() {
   });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
+  const anyDialogOpen =
+    showAddUserDialog ||
+    showInviteDialog ||
+    showEditDialog ||
+    showPermissionsDialog ||
+    Boolean(inviteToDelete);
+
+  useEffect(() => {
+    if (!anyDialogOpen) {
+      document.body.style.pointerEvents = "";
+    }
+  }, [anyDialogOpen]);
+
+  const mapInvite = (i: any): InviteCode => ({
+    ...i,
+    createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
+    expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
+    usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
+    role: i.role,
+    code: i.code,
+    isActive: i.is_active ?? i.isActive ?? true,
+    maxUses: i.max_uses ?? i.maxUses ?? 1,
+    usedCount: i.used_count ?? i.usedCount ?? 0,
+  });
+
+  const mapUser = (u: any): User => ({
+    ...u,
+    createdAt: new Date(u.createdAt ?? u.created_at ?? new Date()),
+    updatedAt: new Date(u.updatedAt ?? u.updated_at ?? new Date()),
+    lastLoginAt: u.lastLoginAt
+      ? new Date(u.lastLoginAt)
+      : u.last_login_at
+        ? new Date(u.last_login_at)
+        : undefined,
+    isPending: Boolean(u.isPending ?? u.is_pending),
+    isActive: Boolean(u.isActive ?? u.is_active),
+    permissions:
+      (u.permissions as any) ||
+      (u.role ? defaultPermissions[u.role as UserRole] : defaultPermissions.user),
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -166,24 +232,10 @@ export default function Users() {
           accessCodeService.list(),
         ]);
         setUsers(
-          userData.map((u) => ({
-            ...u,
-            createdAt: new Date(u.createdAt),
-            updatedAt: new Date(u.updatedAt),
-            lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
-            isPending: Boolean((u as any).isPending),
-          })),
+          userData.map((u) => mapUser(u)),
         );
         setInviteCodes(
-          invites.map((i: any) => ({
-            ...i,
-            createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
-            expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
-            usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
-            role: i.role,
-            code: i.code,
-            isActive: i.is_active ?? i.isActive,
-          })) as unknown as InviteCode[],
+          invites.map((i: any) => mapInvite(i)) as unknown as InviteCode[],
         );
       } catch (error: any) {
         toast.error(error?.message || "Erro ao carregar usu?rios");
@@ -212,9 +264,10 @@ const generateInviteCode = () => {
         code,
         role: newInvite.role,
         expiresAt: newInvite.expiresAt || undefined,
+        maxUses: Number(newInvite.maxUses) > 0 ? Number(newInvite.maxUses) : 1,
       });
-      setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
-      setNewInvite({ role: "user", expiresAt: "" } as any);
+      setInviteCodes((prev) => [mapInvite(created), ...prev]);
+      setNewInvite({ role: "user", expiresAt: "", maxUses: "1" } as any);
       setShowInviteDialog(false);
       toast.success("C?digo de acesso criado com sucesso!");
     } catch (error: any) {
@@ -228,13 +281,7 @@ const generateInviteCode = () => {
         ...newUserData,
       });
       setUsers((prev) => [
-        {
-          ...created,
-          createdAt: new Date(created.createdAt),
-          updatedAt: new Date(created.updatedAt),
-          lastLoginAt: created.lastLoginAt ? new Date(created.lastLoginAt) : undefined,
-          isPending: Boolean((created as any).isPending),
-        },
+        mapUser(created),
         ...prev,
       ]);
       setNewUserData({ name: "", email: "", phone: "", role: "user" });
@@ -267,10 +314,7 @@ const handleEditUser = (userToEdit: User) => {
         prev.map((u) =>
           u.id === selectedUser.id
             ? {
-                ...updated,
-                createdAt: new Date(updated.createdAt),
-                updatedAt: new Date(updated.updatedAt),
-                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
+                ...mapUser(updated),
               }
             : u,
         ),
@@ -300,10 +344,7 @@ const handleDeleteUser = async (userId: string) => {
         prev.map((u) =>
           u.id === userId
             ? {
-                ...updated,
-                createdAt: new Date(updated.createdAt),
-                updatedAt: new Date(updated.updatedAt),
-                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
+                ...mapUser(updated),
               }
             : u,
         ),
@@ -311,6 +352,24 @@ const handleDeleteUser = async (userId: string) => {
       toast.success("Usu?rio inativado com sucesso!");
     } catch (error: any) {
       toast.error(error?.message || "Erro ao inativar usu?rio");
+    }
+  };
+
+  const handleSavePermissions = async () => {
+    if (!selectedUser || !permissionsDraft) return;
+    try {
+      const updated = await usersService.update(selectedUser.id, {
+        permissions: permissionsDraft,
+      });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === selectedUser.id ? mapUser(updated) : u)),
+      );
+      setShowPermissionsDialog(false);
+      setSelectedUser(null);
+      setPermissionsDraft(null);
+      toast.success("Permissões atualizadas com sucesso!");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao salvar permissões");
     }
   };
 
@@ -405,6 +464,22 @@ const getUserPermissions = (userRole: UserRole) => {
                       setNewInvite((prev) => ({
                         ...prev,
                         expiresAt: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="maxUses">Qtd. de usos permitidos</Label>
+                  <Input
+                    id="maxUses"
+                    type="number"
+                    min={1}
+                    value={newInvite.maxUses}
+                    onChange={(e) =>
+                      setNewInvite((prev) => ({
+                        ...prev,
+                        maxUses: e.target.value,
                       }))
                     }
                   />
@@ -664,6 +739,10 @@ const getUserPermissions = (userRole: UserRole) => {
                               <DropdownMenuItem
                                 onClick={() => {
                                   setSelectedUser(u);
+                                  setPermissionsDraft(
+                                    (u.permissions as any) ||
+                                      defaultPermissions[u.role],
+                                  );
                                   setShowPermissionsDialog(true);
                                 }}
                               >
@@ -706,6 +785,7 @@ const getUserPermissions = (userRole: UserRole) => {
                       <TableHead>Código</TableHead>
                       <TableHead>E-mail</TableHead>
                       <TableHead>Cargo</TableHead>
+                      <TableHead>Usos</TableHead>
                       <TableHead>Criado em</TableHead>
                       <TableHead>Expira em</TableHead>
                       <TableHead>Status</TableHead>
@@ -744,6 +824,11 @@ const getUserPermissions = (userRole: UserRole) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          <span className="text-sm">
+                            {(invite.usedCount ?? 0)}/{invite.maxUses ?? 1}
+                          </span>
+                        </TableCell>
+                        <TableCell>
                           {invite.createdAt
                             ? new Date(invite.createdAt).toLocaleDateString("pt-BR")
                             : "-"}
@@ -765,15 +850,7 @@ const getUserPermissions = (userRole: UserRole) => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                const updatedCodes = inviteCodes.map((c) =>
-                                  c.id === invite.id
-                                    ? { ...c, isActive: false }
-                                    : c,
-                                );
-                                setInviteCodes(updatedCodes);
-                                toast.success("Convite desativado");
-                              }}
+                              onClick={() => setInviteToDelete(invite)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -798,7 +875,24 @@ const getUserPermissions = (userRole: UserRole) => {
         </Tabs>
 
         {/* Edit User Dialog */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <Dialog
+          key={`edit-${selectedUser?.id || "none"}`}
+          open={showEditDialog}
+          onOpenChange={(open) => {
+            setShowEditDialog(open);
+            if (!open) {
+              setSelectedUser(null);
+              setEditUserData({
+                name: "",
+                email: "",
+                department: "",
+                phone: "",
+                role: "user",
+                isActive: true,
+              });
+            }
+          }}
+        >
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Editar Usuário</DialogTitle>
@@ -920,10 +1014,17 @@ const getUserPermissions = (userRole: UserRole) => {
 
         {/* Permissions Dialog */}
         <Dialog
+          key={`permissions-${selectedUser?.id || "none"}`}
           open={showPermissionsDialog}
-          onOpenChange={setShowPermissionsDialog}
+          onOpenChange={(open) => {
+            setShowPermissionsDialog(open);
+            if (!open) {
+              setSelectedUser(null);
+              setPermissionsDraft(null);
+            }
+          }}
         >
-          <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto flex flex-col">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle>Permissões do Usuário</DialogTitle>
               <DialogDescription>
@@ -932,7 +1033,7 @@ const getUserPermissions = (userRole: UserRole) => {
               </DialogDescription>
             </DialogHeader>
             {selectedUser && (
-              <div className="space-y-4 flex-1 overflow-hidden">
+              <div className="space-y-4 flex-1">
                 <div className="p-3 bg-gray-50 rounded-lg flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -952,40 +1053,99 @@ const getUserPermissions = (userRole: UserRole) => {
                 </div>
 
                 <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-                  {Object.entries(getUserPermissions(selectedUser.role)).map(
-                    ([permission, hasAccess]) => (
-                      <div
-                        key={permission}
-                        className="flex items-center justify-between p-2 border rounded text-sm"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-xs truncate">
-                            {permission
-                              .replace("can", "")
-                              .replace(/([A-Z])/g, " $1")
-                              .trim()}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={hasAccess ? "default" : "secondary"}
-                          className="text-xs py-0 px-2 ml-2 flex-shrink-0"
-                        >
-                          {hasAccess ? "✓" : "✗"}
-                        </Badge>
+                  {Object.entries(
+                    permissionsDraft ||
+                      getUserPermissions(selectedUser.role),
+                  ).map(([permission, hasAccess]) => (
+                    <div
+                      key={permission}
+                      className="flex items-center justify-between p-2 border rounded text-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">
+                          {getPermissionLabel(permission)}
+                        </p>
                       </div>
-                    ),
-                  )}
+                      <Switch
+                        checked={Boolean(hasAccess)}
+                        onCheckedChange={(checked) =>
+                          setPermissionsDraft((prev) => ({
+                            ...(prev ||
+                              getUserPermissions(selectedUser.role)),
+                            [permission]: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
 
-                <Button
-                  onClick={() => setShowPermissionsDialog(false)}
-                  className="w-full flex-shrink-0"
-                  size="sm"
-                >
-                  Fechar
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowPermissionsDialog(false);
+                      setPermissionsDraft(null);
+                      setSelectedUser(null);
+                    }}
+                    className="flex-1 flex-shrink-0"
+                    size="sm"
+                    variant="outline"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    onClick={handleSavePermissions}
+                    className="flex-1 flex-shrink-0"
+                    size="sm"
+                  >
+                    Salvar
+                  </Button>
+                </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmar remoção de convite */}
+        <Dialog
+          open={Boolean(inviteToDelete)}
+          onOpenChange={(open) => {
+            if (!open) setInviteToDelete(null);
+          }}
+        >
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Remover convite?</DialogTitle>
+              <DialogDescription>
+                {inviteToDelete
+                  ? `Deseja remover o código ${inviteToDelete.code}?`
+                  : "Deseja remover este convite?"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setInviteToDelete(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!inviteToDelete) return;
+                  try {
+                    await accessCodeService.delete(inviteToDelete.id);
+                    setInviteCodes((prev) =>
+                      prev.filter((c) => c.id !== inviteToDelete.id),
+                    );
+                    toast.success("Convite removido");
+                  } catch (error: any) {
+                    toast.error(error?.message || "Erro ao remover convite");
+                  } finally {
+                    setInviteToDelete(null);
+                  }
+                }}
+              >
+                Remover
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
