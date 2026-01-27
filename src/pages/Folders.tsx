@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Folder,
@@ -396,6 +396,7 @@ const PermissionsSection = ({
 
 export default function Folders() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -406,6 +407,7 @@ export default function Folders() {
   const [form, setForm] = useState<FolderForm>(defaultForm);
   const [permissionMode, setPermissionMode] = useState<PermissionMode>("all");
   const [deleteTarget, setDeleteTarget] = useState<Folder | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const visibleFolders = useMemo(() => folders, [folders]);
 
@@ -413,14 +415,16 @@ export default function Folders() {
     let mounted = true;
     const fetchFolders = async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await foldersService.list();
         if (!mounted) return;
         const parsed = Array.isArray(data) ? data.map(parseFolder) : [];
         setFolders(parsed);
       } catch (error: any) {
-        if (!mounted) return;
-        toast.error(error?.message || "Erro ao carregar pastas");
+        const msg = error?.message || "Erro ao carregar pastas";
+        setError(msg);
+        toast.error(msg);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -442,11 +446,32 @@ export default function Folders() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!folders.length) return;
+    const searchParams = new URLSearchParams(location.search);
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const target = folders.find((f) => f.id === editId);
+      if (target) {
+        openEditDialog(target);
+      }
+    }
+  }, [folders, location.search]);
+
   const openCreateDialog = () => {
     setDialogMode("create");
     setForm(defaultForm);
     setPermissionMode("all");
     setDialogOpen(true);
+  };
+
+  const canManageFolder = (f: Folder) => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    const perms = normalizePermissions((f as any).permissions);
+    const roleAllowed = (perms.manageRoles || []).includes(user.role as UserRole);
+    const idAllowed = (perms.canManage || []).includes(user.id);
+    return hasPermission("canManageFolders") && (roleAllowed || idAllowed || user.role === "manager");
   };
 
   const openEditDialog = (folder: Folder) => {
@@ -752,6 +777,17 @@ export default function Folders() {
           </Card>
         )}
 
+        {error && !loading && (
+          <Card>
+            <CardContent className="py-6 space-y-3">
+              <div className="text-sm text-red-600">{error}</div>
+              <Button size="sm" variant="outline" onClick={() => location.reload()}>
+                Tentar novamente
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {visibleFolders.map((folder) => {
             const IconComponent = getIconComponent(folder.icon);
@@ -812,7 +848,7 @@ export default function Folders() {
                           Ver Contratos
                         </DropdownMenuItem>
                         {folder.type !== "system" &&
-                          hasPermission("canManageFolders") && (
+                          canManageFolder(folder) && (
                             <>
                               <DropdownMenuItem
                                 onClick={(e) => {

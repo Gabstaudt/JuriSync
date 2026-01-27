@@ -21,6 +21,8 @@ export interface InviteCode {
   expiresAt?: string;
   usedAt?: string;
   usedBy?: string;
+  maxUses?: number;
+  usedCount?: number;
   isActive: boolean;
 }
 
@@ -30,5 +32,7 @@ export const accessCodeService = {
     role: InviteCode["role"];
     expiresAt?: string;
     code?: string;
+    maxUses?: number;
   }) => api.post<InviteCode>("/api/access-codes", payload),
+  delete: (id: string) => api.delete<void>(`/api/access-codes/${id}`),
 };
