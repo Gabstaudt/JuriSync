@@ -19,6 +19,7 @@ import {
   X,
   MessageSquare,
   Building2,
+  ListChecks,
 } from "lucide-react";
 import { chatService } from "@/lib/services/chat";
 
@@ -70,6 +71,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: "Pastas",
       icon: FolderOpen,
       href: "/folders",
+      badge: null,
+    },
+    {
+      label: "Tarefas",
+      icon: ListChecks,
+      href: "/tasks",
       badge: null,
     },
     {

@@ -15,6 +15,7 @@ export type Participant = {
 export type Conversation = {
   id: string;
   title?: string | null;
+  teamId?: string | null;
   isGroup: boolean;
   participants: Participant[];
   lastMessage?: {
