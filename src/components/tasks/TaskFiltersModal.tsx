@@ -43,11 +43,11 @@ export function TaskFiltersModal({ open, onOpenChange, teams, users, folders, co
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Filtros</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Time</Label>
             <Select value={local.teamId} onValueChange={(v) => setLocal((f) => ({ ...f, teamId: v }))}>
