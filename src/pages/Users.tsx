@@ -141,6 +141,47 @@ import { usersService, accessCodeService } from "@/lib/services/users";
 import { teamsService } from "@/lib/services/teams";
 import { Team } from "@/types/team";
 
+const defaultPermissions: Record<UserRole, UserPermissions> = {
+  admin: {
+    canViewContracts: true,
+    canCreateContracts: true,
+    canEditContracts: true,
+    canDeleteContracts: true,
+    canManageUsers: true,
+    canCreateFolders: true,
+    canManageFolders: true,
+    canAccessAnalytics: true,
+    canExportData: true,
+    canManageNotifications: true,
+    canManageSystem: true,
+  },
+  manager: {
+    canViewContracts: true,
+    canCreateContracts: true,
+    canEditContracts: true,
+    canDeleteContracts: false,
+    canManageUsers: false,
+    canCreateFolders: true,
+    canManageFolders: true,
+    canAccessAnalytics: true,
+    canExportData: true,
+    canManageNotifications: true,
+    canManageSystem: false,
+  },
+  user: {
+    canViewContracts: true,
+    canCreateContracts: false,
+    canEditContracts: false,
+    canDeleteContracts: false,
+    canManageUsers: false,
+    canCreateFolders: false,
+    canManageFolders: false,
+    canAccessAnalytics: false,
+    canExportData: false,
+    canManageNotifications: false,
+    canManageSystem: false,
+  },
+};
 
 const permissionLabels: Record<keyof UserPermissions, string> = {
   canCreateContracts: "Criar contratos",
@@ -172,7 +213,22 @@ const getRoleColor = (role: UserRole) => {
 
 };
 
-
+const getPermissionLabel = (permission: string) => {
+  const map: Record<string, string> = {
+    canViewContracts: "Ver contratos",
+    canCreateContracts: "Criar contratos",
+    canEditContracts: "Editar contratos",
+    canDeleteContracts: "Excluir contratos",
+    canManageUsers: "Gerenciar usuários",
+    canCreateFolders: "Criar pastas",
+    canManageFolders: "Gerenciar pastas",
+    canExportData: "Exportar dados",
+    canManageNotifications: "Gerenciar notificações",
+    canAccessAnalytics: "Acessar analytics",
+    canManageSystem: "Administrar sistema",
+  };
+  return map[permission] || permission;
+};
 
 const getInitials = (name: string) =>
 
@@ -209,7 +265,7 @@ export default function Users() {
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-
+  const [permissionsDraft, setPermissionsDraft] = useState<UserPermissions | null>(null);
   const [editUserData, setEditUserData] = useState({
 
     name: "",
@@ -263,6 +319,60 @@ export default function Users() {
     setSelectedUser(null);
     setPermissionForm(null);
   };
+  const [newInvite, setNewInvite] = useState({
+    role: "user" as UserRole,
+    expiresAt: "",
+    maxUses: "1",
+  });
+  const [inviteToDelete, setInviteToDelete] = useState<InviteCode | null>(null);
+  const [newUserData, setNewUserData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "user" as UserRole,
+  });
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [filterByCreator, setFilterByCreator] = useState<string>("all");
+  const anyDialogOpen =
+    showAddUserDialog ||
+    showInviteDialog ||
+    showEditDialog ||
+    showPermissionsDialog ||
+    Boolean(inviteToDelete);
+
+  useEffect(() => {
+    if (!anyDialogOpen) {
+      document.body.style.pointerEvents = "";
+    }
+  }, [anyDialogOpen]);
+
+  const mapInvite = (i: any): InviteCode => ({
+    ...i,
+    createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
+    expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
+    usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
+    role: i.role,
+    code: i.code,
+    isActive: i.is_active ?? i.isActive ?? true,
+    maxUses: i.max_uses ?? i.maxUses ?? 1,
+    usedCount: i.used_count ?? i.usedCount ?? 0,
+  });
+
+  const mapUser = (u: any): User => ({
+    ...u,
+    createdAt: new Date(u.createdAt ?? u.created_at ?? new Date()),
+    updatedAt: new Date(u.updatedAt ?? u.updated_at ?? new Date()),
+    lastLoginAt: u.lastLoginAt
+      ? new Date(u.lastLoginAt)
+      : u.last_login_at
+        ? new Date(u.last_login_at)
+        : undefined,
+    isPending: Boolean(u.isPending ?? u.is_pending),
+    isActive: Boolean(u.isActive ?? u.is_active),
+    permissions:
+      (u.permissions as any) ||
+      (u.role ? defaultPermissions[u.role as UserRole] : defaultPermissions.user),
+  });
 
   useEffect(() => {
     if (showPermissionsDialog && selectedUser) {
@@ -298,44 +408,11 @@ export default function Users() {
         ]);
 
         setUsers(
-
-          userData.map((u) => ({
-
-            ...u,
-
-            createdAt: new Date(u.createdAt),
-
-            updatedAt: new Date(u.updatedAt),
-
-            lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
-
-            isPending: Boolean((u as any).isPending),
-            permissions: (u as any).permissions,
-
-          })),
-
+          userData.map((u) => mapUser(u)),
         );
 
         setInviteCodes(
-
-          invites.map((i: any) => ({
-
-            ...i,
-
-            createdAt: i.created_at ? new Date(i.created_at) : new Date(i.createdAt || new Date()),
-
-            expiresAt: i.expires_at ? new Date(i.expires_at) : i.expiresAt ? new Date(i.expiresAt) : undefined,
-
-            usedAt: i.used_at ? new Date(i.used_at) : i.usedAt ? new Date(i.usedAt) : undefined,
-
-            role: i.role,
-
-            code: i.code,
-
-            isActive: i.is_active ?? i.isActive,
-
-          })) as unknown as InviteCode[],
-
+          invites.map((i: any) => mapInvite(i)) as unknown as InviteCode[],
         );
 
       } catch (error: any) {
@@ -393,13 +470,10 @@ const generateInviteCode = () => {
         role: newInvite.role,
 
         expiresAt: newInvite.expiresAt || undefined,
-
+        maxUses: Number(newInvite.maxUses) > 0 ? Number(newInvite.maxUses) : 1,
       });
-
-      setInviteCodes((prev) => [created as unknown as InviteCode, ...prev]);
-
-      setNewInvite(newInviteDefaults);
-
+      setInviteCodes((prev) => [mapInvite(created), ...prev]);
+      setNewInvite({ role: "user", expiresAt: "", maxUses: "1" } as any);
       setShowInviteDialog(false);
 
       toast.success("Código de acesso criado com sucesso!");
@@ -427,21 +501,7 @@ const generateInviteCode = () => {
       });
 
       setUsers((prev) => [
-
-        {
-
-          ...created,
-
-          createdAt: new Date(created.createdAt),
-
-          updatedAt: new Date(created.updatedAt),
-
-          lastLoginAt: created.lastLoginAt ? new Date(created.lastLoginAt) : undefined,
-
-          isPending: Boolean((created as any).isPending),
-
-        },
-
+        mapUser(created),
         ...prev,
 
       ]);
@@ -507,15 +567,7 @@ const handleEditUser = (userToEdit: User) => {
           u.id === selectedUser.id
 
             ? {
-
-                ...updated,
-
-                createdAt: new Date(updated.createdAt),
-
-                updatedAt: new Date(updated.updatedAt),
-
-                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
-
+                ...mapUser(updated),
               }
 
             : u,
@@ -575,15 +627,7 @@ const handleDeleteUser = async (userId: string) => {
           u.id === userId
 
             ? {
-
-                ...updated,
-
-                createdAt: new Date(updated.createdAt),
-
-                updatedAt: new Date(updated.updatedAt),
-
-                lastLoginAt: updated.lastLoginAt ? new Date(updated.lastLoginAt) : undefined,
-
+                ...mapUser(updated),
               }
 
             : u,
@@ -605,22 +649,25 @@ const handleDeleteUser = async (userId: string) => {
   };
 
   const handleSavePermissions = async () => {
-    if (!selectedUser || !permissionForm) return;
+    if (!selectedUser || !permissionsDraft) return;
     try {
-      setSavingPermissions(true);
-      await usersService.update(selectedUser.id, { permissions: permissionForm } as any);
+      const updated = await usersService.update(selectedUser.id, {
+        permissions: permissionsDraft,
+      });
       setUsers((prev) =>
-        prev.map((u) =>
-          u.id === selectedUser.id ? { ...u, permissions: permissionForm } : u,
-        ),
+        prev.map((u) => (u.id === selectedUser.id ? mapUser(updated) : u)),
       );
-      toast.success("Permissões atualizadas");
-      handleClosePermissionsDialog();
+      setShowPermissionsDialog(false);
+      setSelectedUser(null);
+      setPermissionsDraft(null);
+      toast.success("Permissões atualizadas com sucesso!");
     } catch (error: any) {
       toast.error(error?.message || "Erro ao salvar permissões");
-    } finally {
-      setSavingPermissions(false);
     }
+  };
+
+const getUserPermissions = (userRole: UserRole) => {
+    return defaultPermissions[userRole];
   };
 
 
@@ -877,7 +924,21 @@ const startEditTeam = (teamId: string) => {
 
                 </div>
 
-
+                <div className="space-y-2">
+                  <Label htmlFor="maxUses">Qtd. de usos permitidos</Label>
+                  <Input
+                    id="maxUses"
+                    type="number"
+                    min={1}
+                    value={newInvite.maxUses}
+                    onChange={(e) =>
+                      setNewInvite((prev) => ({
+                        ...prev,
+                        maxUses: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
                 <Button onClick={handleCreateInvite} className="w-full">
 
@@ -912,6 +973,8 @@ const startEditTeam = (teamId: string) => {
 
           <DialogContent className="max-w-md">
 
+        <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
 
               <DialogTitle>Adicionar usuário</DialogTitle>
@@ -1399,8 +1462,9 @@ const startEditTeam = (teamId: string) => {
                                 onClick={() => {
 
                                   setSelectedUser(u);
-                                  setPermissionForm(
-                                    (u as any).permissions || defaultPermissions[u.role],
+                                  setPermissionsDraft(
+                                    (u.permissions as any) ||
+                                      defaultPermissions[u.role],
                                   );
                                   setShowPermissionsDialog(true);
 
@@ -1483,7 +1547,7 @@ const startEditTeam = (teamId: string) => {
                       <TableHead>E-mail</TableHead>
 
                       <TableHead>Cargo</TableHead>
-
+                      <TableHead>Usos</TableHead>
                       <TableHead>Criado em</TableHead>
 
                       <TableHead>Expira em</TableHead>
@@ -1570,7 +1634,11 @@ const startEditTeam = (teamId: string) => {
                         </TableCell>
 
                         <TableCell>
-
+                          <span className="text-sm">
+                            {(invite.usedCount ?? 0)}/{invite.maxUses ?? 1}
+                          </span>
+                        </TableCell>
+                        <TableCell>
                           {invite.createdAt
 
                             ? new Date(invite.createdAt).toLocaleDateString("pt-BR")
@@ -1612,25 +1680,7 @@ const startEditTeam = (teamId: string) => {
                               variant="ghost"
 
                               size="sm"
-
-                              onClick={() => {
-
-                                const updatedCodes = inviteCodes.map((c) =>
-
-                                  c.id === invite.id
-
-                                    ? { ...c, isActive: false }
-
-                                    : c,
-
-                                );
-
-                                setInviteCodes(updatedCodes);
-
-                                toast.success("Convite desativado");
-
-                              }}
-
+                              onClick={() => setInviteToDelete(invite)}
                             >
 
                               <Trash2 className="h-4 w-4" />
@@ -1726,12 +1776,21 @@ const startEditTeam = (teamId: string) => {
 
         {/* Edit User Dialog */}
         <Dialog
-          modal={false}
+          key={`edit-${selectedUser?.id || "none"}`}
           open={showEditDialog}
           onOpenChange={(open) => {
             setShowEditDialog(open);
             if (!open) {
               handleCloseEditDialog();
+              setSelectedUser(null);
+              setEditUserData({
+                name: "",
+                email: "",
+                department: "",
+                phone: "",
+                role: "user",
+                isActive: true,
+              });
             }
           }}
         >
@@ -1989,6 +2048,17 @@ const startEditTeam = (teamId: string) => {
           }}
         >
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          key={`permissions-${selectedUser?.id || "none"}`}
+          open={showPermissionsDialog}
+          onOpenChange={(open) => {
+            setShowPermissionsDialog(open);
+            if (!open) {
+              setSelectedUser(null);
+              setPermissionsDraft(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto flex flex-col">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle>Permissões do usuário</DialogTitle>
               <DialogDescription>
@@ -1998,7 +2068,7 @@ const startEditTeam = (teamId: string) => {
             </DialogHeader>
 
             {selectedUser && (
-              <div className="space-y-4 flex-1 overflow-hidden">
+              <div className="space-y-4 flex-1">
                 <div className="p-3 bg-gray-50 rounded-lg flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -2071,12 +2141,101 @@ const startEditTeam = (teamId: string) => {
                       {savingPermissions ? "Salvando..." : "Salvar permissões"}
                     </Button>
                   )}
+                  {Object.entries(
+                    permissionsDraft ||
+                      getUserPermissions(selectedUser.role),
+                  ).map(([permission, hasAccess]) => (
+                    <div
+                      key={permission}
+                      className="flex items-center justify-between p-2 border rounded text-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">
+                          {getPermissionLabel(permission)}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={Boolean(hasAccess)}
+                        onCheckedChange={(checked) =>
+                          setPermissionsDraft((prev) => ({
+                            ...(prev ||
+                              getUserPermissions(selectedUser.role)),
+                            [permission]: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowPermissionsDialog(false);
+                      setPermissionsDraft(null);
+                      setSelectedUser(null);
+                    }}
+                    className="flex-1 flex-shrink-0"
+                    size="sm"
+                    variant="outline"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    onClick={handleSavePermissions}
+                    className="flex-1 flex-shrink-0"
+                    size="sm"
+                  >
+                    Salvar
+                  </Button>
                 </div>
               </div>
             )}
           </DialogContent>
         </Dialog>
 
+        {/* Confirmar remoção de convite */}
+        <Dialog
+          open={Boolean(inviteToDelete)}
+          onOpenChange={(open) => {
+            if (!open) setInviteToDelete(null);
+          }}
+        >
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Remover convite?</DialogTitle>
+              <DialogDescription>
+                {inviteToDelete
+                  ? `Deseja remover o código ${inviteToDelete.code}?`
+                  : "Deseja remover este convite?"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setInviteToDelete(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!inviteToDelete) return;
+                  try {
+                    await accessCodeService.delete(inviteToDelete.id);
+                    setInviteCodes((prev) =>
+                      prev.filter((c) => c.id !== inviteToDelete.id),
+                    );
+                    toast.success("Convite removido");
+                  } catch (error: any) {
+                    toast.error(error?.message || "Erro ao remover convite");
+                  } finally {
+                    setInviteToDelete(null);
+                  }
+                }}
+              >
+                Remover
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
     </Layout>
