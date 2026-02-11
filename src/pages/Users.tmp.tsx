@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 
 import { useAuth } from "@/contexts/AuthContext";
 
-import { User, InviteCode, UserRole, UserPermissions } from "@/types/auth";
+import { User, InviteCode, UserRole, UserPermissions, defaultPermissions } from "@/types/auth";
 
 import { Layout } from "@/components/layout/Layout";
 
@@ -141,7 +141,7 @@ import { usersService, accessCodeService } from "@/lib/services/users";
 import { teamsService } from "@/lib/services/teams";
 import { Team } from "@/types/team";
 
-const defaultPermissions: Record<UserRole, UserPermissions> = {
+const defaultPermissions = {
   admin: {
     canViewContracts: true,
     canCreateContracts: true,
@@ -283,15 +283,13 @@ export default function Users() {
   });
 
   const newUserDefaults = { name: "", email: "", phone: "", role: "user" as UserRole };
-  const newInviteDefaults = {
-    role: "user" as UserRole,
-    expiresAt: "",
-    maxUses: "1",
-  };
+  const newInviteDefaults = { role: "user" as UserRole, expiresAt: "" };
 
   const [newInvite, setNewInvite] = useState(newInviteDefaults);
 
   const [newUserData, setNewUserData] = useState(newUserDefaults);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [filterByCreator, setFilterByCreator] = useState<string>("all");
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamForm, setTeamForm] = useState({ id: "", name: "", description: "", users: [] as string[] });
@@ -321,7 +319,18 @@ export default function Users() {
     setSelectedUser(null);
     setPermissionForm(null);
   };
+  const [newInvite, setNewInvite] = useState({
+    role: "user" as UserRole,
+    expiresAt: "",
+    maxUses: "1",
+  });
   const [inviteToDelete, setInviteToDelete] = useState<InviteCode | null>(null);
+  const [newUserData, setNewUserData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "user" as UserRole,
+  });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterByCreator, setFilterByCreator] = useState<string>("all");
   const anyDialogOpen =
@@ -954,12 +963,17 @@ const startEditTeam = (teamId: string) => {
         {/* Novo usuário modal */}
 
         <Dialog
+          modal={false}
           open={showAddUserDialog}
           onOpenChange={(open) => {
             setShowAddUserDialog(open);
             if (!open) setNewUserData(newUserDefaults);
           }}
         >
+
+          <DialogContent className="max-w-md">
+
+        <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
 
@@ -2025,7 +2039,15 @@ const startEditTeam = (teamId: string) => {
         </Dialog>
 
         {/* Permissions Dialog */}
-        <Dialog
+                <Dialog
+          modal={false}
+          open={showPermissionsDialog}
+          onOpenChange={(open) => {
+            setShowPermissionsDialog(open);
+            if (!open) handleClosePermissionsDialog();
+          }}
+        >
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           key={`permissions-${selectedUser?.id || "none"}`}
           open={showPermissionsDialog}
           onOpenChange={(open) => {
@@ -2064,41 +2086,46 @@ const startEditTeam = (teamId: string) => {
                 </div>
 
                 <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-                  {Object.entries(
-                    permissionsDraft || getUserPermissions(selectedUser.role),
-                  ).map(([permission, hasAccess]) => {
-                    const canEdit = hasPermission("canManageUsers");
-                    return (
-                      <div
-                        key={permission}
-                        className="flex items-center justify-between p-2 border rounded text-sm"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-xs truncate">
-                            {getPermissionLabel(permission)}
-                          </p>
+                  {permissionForm ? (
+                    Object.entries(permissionForm).map(([permission, hasAccess]) => {
+                      const label =
+                        permissionLabels[permission as keyof UserPermissions] ||
+                        permission
+                          .replace("can", "")
+                          .replace(/([A-Z])/g, " $1")
+                          .trim();
+                      const canEdit = hasPermission("canManageUsers");
+                      return (
+                        <div
+                          key={permission}
+                          className="flex items-center justify-between p-2 border rounded text-sm"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-xs truncate">{label}</p>
+                          </div>
+                          {canEdit ? (
+                            <Switch
+                              checked={hasAccess}
+                              onCheckedChange={(checked) =>
+                                setPermissionForm((prev) =>
+                                  prev ? { ...prev, [permission]: Boolean(checked) } : prev,
+                                )
+                              }
+                            />
+                          ) : (
+                            <Badge
+                              variant={hasAccess ? "default" : "secondary"}
+                              className="text-xs py-0 px-2 ml-2 flex-shrink-0"
+                            >
+                              {hasAccess ? "Permitido" : "Bloqueado"}
+                            </Badge>
+                          )}
                         </div>
-                        {canEdit ? (
-                          <Switch
-                            checked={Boolean(hasAccess)}
-                            onCheckedChange={(checked) =>
-                              setPermissionsDraft((prev) => ({
-                                ...(prev || getUserPermissions(selectedUser.role)),
-                                [permission]: checked,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <Badge
-                            variant={hasAccess ? "default" : "secondary"}
-                            className="text-xs py-0 px-2 ml-2 flex-shrink-0"
-                          >
-                            {hasAccess ? "Permitido" : "Bloqueado"}
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Carregando permissões...</p>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2 sticky bottom-0 bg-white pb-2">
@@ -2109,11 +2136,58 @@ const startEditTeam = (teamId: string) => {
                     <Button
                       className="flex-1"
                       onClick={handleSavePermissions}
-                      disabled={savingPermissions}
+                      disabled={savingPermissions || !permissionForm}
                     >
-                      {savingPermissions ? "Salvando..." : "Salvar permissoes"}
+                      {savingPermissions ? "Salvando..." : "Salvar permissões"}
                     </Button>
                   )}
+                  {Object.entries(
+                    permissionsDraft ||
+                      getUserPermissions(selectedUser.role),
+                  ).map(([permission, hasAccess]) => (
+                    <div
+                      key={permission}
+                      className="flex items-center justify-between p-2 border rounded text-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">
+                          {getPermissionLabel(permission)}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={Boolean(hasAccess)}
+                        onCheckedChange={(checked) =>
+                          setPermissionsDraft((prev) => ({
+                            ...(prev ||
+                              getUserPermissions(selectedUser.role)),
+                            [permission]: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowPermissionsDialog(false);
+                      setPermissionsDraft(null);
+                      setSelectedUser(null);
+                    }}
+                    className="flex-1 flex-shrink-0"
+                    size="sm"
+                    variant="outline"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    onClick={handleSavePermissions}
+                    className="flex-1 flex-shrink-0"
+                    size="sm"
+                  >
+                    Salvar
+                  </Button>
                 </div>
               </div>
             )}

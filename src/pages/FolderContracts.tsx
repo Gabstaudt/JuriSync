@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Contract, ContractFilters } from "@/types/contract";
 import { Process } from "@/types/process";
-import { Folder } from "@/types/folder";
 import { Folder, FolderPermissions, folderColors, folderIcons } from "@/types/folder";
 import { filterContracts, formatCurrency } from "@/lib/contracts";
 import { ContractTable } from "@/components/contracts/ContractTable";
@@ -53,6 +52,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { foldersService } from "@/lib/services/folders";
+import { usersService } from "@/lib/services/users";
+import { User } from "@/types/auth";
 
 export default function FolderContracts() {
   const { folderId } = useParams<{ folderId: string }>();
@@ -101,9 +102,8 @@ export default function FolderContracts() {
       if (!folderId) return;
       try {
         setIsLoading(true);
-        const [folderData, contractsData, processesData] = await Promise.all([
         setLoadError(null);
-        const [folderData, contractsData] = await Promise.all([
+        const [folderData, contractsData, processesData] = await Promise.all([
           foldersService.get(folderId),
           foldersService.contracts(folderId),
           foldersService.processes(folderId),
@@ -390,6 +390,18 @@ export default function FolderContracts() {
         </div>
 
           <div className="flex items-center gap-2">
+            {canManageFolder() && (
+              <>
+                <Button variant="outline" onClick={openEditModal}>
+                  Editar
+                </Button>
+                {folder.type !== "system" && (
+                  <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+                    Excluir
+                  </Button>
+                )}
+              </>
+            )}
             {hasPermission("canCreateContracts") && (
               <Button onClick={() => navigate("/contracts/new")}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -397,25 +409,9 @@ export default function FolderContracts() {
               </Button>
             )}
             <Button variant="outline" onClick={() => navigate("/processes")}>
-        <div className="flex items-center gap-2">
-          {canManageFolder() && (
-            <>
-              <Button variant="outline" onClick={openEditModal}>
-                Editar
-              </Button>
-              {folder.type !== "system" && (
-                <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-                  Excluir
-                </Button>
-              )}
-            </>
-          )}
-          {hasPermission("canCreateContracts") && (
-            <Button onClick={() => navigate("/contracts/new")}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Processo
             </Button>
-          )}
           </div>
         </div>
 
