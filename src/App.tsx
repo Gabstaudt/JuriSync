@@ -24,6 +24,7 @@ import ProcessDetails from "./pages/ProcessDetails";
 import Models from "./pages/Models";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import Tasks from "./pages/Tasks";
+import ContractAnalysis from "./pages/ContractAnalysis";
 
 const queryClient = new QueryClient();
 
@@ -175,7 +176,7 @@ const App = () => (
               path="/analytics"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <ContractAnalysis />
                 </ProtectedRoute>
               }
             />
