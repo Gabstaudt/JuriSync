@@ -23,6 +23,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -53,7 +83,7 @@ import {
 import { toast } from "sonner";
 import { foldersService } from "@/lib/services/folders";
 import { usersService } from "@/lib/services/users";
-import { User } from "@/types/auth";
+import { User, UserRole } from "@/types/auth";
 
 export default function FolderContracts() {
   const { folderId } = useParams<{ folderId: string }>();
@@ -66,7 +96,7 @@ export default function FolderContracts() {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [filters, setFilters] = useState<ContractFilters>({});
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
-  const [contentMode, setContentMode] = useState<"contracts" | "processes">("contracts");
+  const [contentMode, setContentMode] = useState<"all" | "contracts" | "processes">("all");
   const [isLoading, setIsLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -482,12 +512,19 @@ export default function FolderContracts() {
 
         {/* Controls */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={contentMode === "contracts" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setContentMode("contracts")}
-            >
+        <div className="flex items-center gap-2">
+          <Button
+            variant={contentMode === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setContentMode("all")}
+          >
+            Tudo
+          </Button>
+          <Button
+            variant={contentMode === "contracts" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setContentMode("contracts")}
+          >
               Contratos
             </Button>
             <Button
@@ -518,9 +555,10 @@ export default function FolderContracts() {
           </div>
 
           <div className="text-sm text-muted-foreground">
-            {contentMode === "contracts"
-              ? `${filteredContracts.length} de ${contracts.length} contratos`
-              : `${processes.length} processos`}
+            {contentMode === "contracts" && `${filteredContracts.length} de ${contracts.length} contratos`}
+            {contentMode === "processes" && `${processes.length} processos`}
+            {contentMode === "all" &&
+              `${filteredContracts.length} de ${contracts.length} contratos, ${processes.length} processos`}
           </div>
         </div>
 
@@ -552,7 +590,11 @@ export default function FolderContracts() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {processes.map((p) => (
-                    <Card key={p.id} className="flex flex-col">
+                    <Card
+                      key={p.id}
+                      className="flex flex-col cursor-pointer transition-shadow hover:shadow-md"
+                      onClick={() => navigate(`/processes/${p.id}`)}
+                    >
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg">{p.title}</CardTitle>
                         <CardDescription>{p.description || "Sem descricao"}</CardDescription>
@@ -605,6 +647,46 @@ export default function FolderContracts() {
                   ))}
                 </div>
               )
+            )}
+
+            {contentMode === "all" && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Processos vinculados</h2>
+                  <span className="text-sm text-muted-foreground">
+                    {processes.length} processos
+                  </span>
+                </div>
+                {processes.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-10">
+                      <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                      <h3 className="text-base font-semibold mb-1">Nenhum processo encontrado</h3>
+                      <p className="text-muted-foreground text-center">
+                        Esta pasta ainda nao possui processos vinculados.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {processes.map((p) => (
+                      <Card
+                        key={p.id}
+                        className="flex flex-col cursor-pointer transition-shadow hover:shadow-md"
+                        onClick={() => navigate(`/processes/${p.id}`)}
+                      >
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">{p.title}</CardTitle>
+                          <CardDescription>{p.description || "Sem descricao"}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground">
+                          Status: {p.status}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
