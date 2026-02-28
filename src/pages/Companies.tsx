@@ -42,6 +42,10 @@ export default function Companies() {
   const [editPartyModalOpen, setEditPartyModalOpen] = useState(false);
   const [editCompanyForm, setEditCompanyForm] = useState({ id: "", name: "", cnpj: "", email: "", phone: "" });
   const [editPartyForm, setEditPartyForm] = useState({ id: "", name: "", role: "", email: "", phone: "", company: "" });
+  const [cnpjStatus, setCnpjStatus] = useState<"idle" | "loading" | "valid" | "invalid" | "error">("idle");
+  const [cnpjMessage, setCnpjMessage] = useState("");
+  const [editCnpjStatus, setEditCnpjStatus] = useState<"idle" | "loading" | "valid" | "invalid" | "error">("idle");
+  const [editCnpjMessage, setEditCnpjMessage] = useState("");
 
   const stats = useMemo(
     () => ({
@@ -66,6 +70,46 @@ export default function Companies() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const normalizeCnpj = (value: string) => value.replace(/\D/g, "");
+
+  const handleLookupCnpj = async (
+    raw: string,
+    setForm: (value: any) => void,
+    setStatus: (value: "idle" | "loading" | "valid" | "invalid" | "error") => void,
+    setMessage: (value: string) => void,
+  ) => {
+    const cnpj = normalizeCnpj(raw);
+    if (!cnpj) {
+      setStatus("idle");
+      setMessage("");
+      return;
+    }
+    if (cnpj.length !== 14) {
+      setStatus("invalid");
+      setMessage("CNPJ inválido. Informe 14 dígitos.");
+      return;
+    }
+    setStatus("loading");
+    setMessage("Consultando CNPJ...");
+    try {
+      const res = await companiesService.lookupCnpj(cnpj);
+      if (!res.valid) {
+        setStatus("invalid");
+        setMessage(res.error || "CNPJ inválido.");
+        return;
+      }
+      const name = res.corporateName || res.tradeName || "";
+      setStatus("valid");
+      setMessage(name ? `Válido: ${name}` : "CNPJ válido.");
+      if (name) {
+        setForm((prev: any) => ({ ...prev, name }));
+      }
+    } catch (e: any) {
+      setStatus("error");
+      setMessage(e?.message || "Erro ao consultar CNPJ");
+    }
+  };
 
   const handleAddCompany = async () => {
     if (!companyForm.name.trim()) return toast.error("Nome da empresa obrigatório");
@@ -137,6 +181,8 @@ export default function Companies() {
       email: c.email || "",
       phone: c.phone || "",
     });
+    setEditCnpjStatus("idle");
+    setEditCnpjMessage("");
     setEditCompanyModalOpen(true);
   };
 
@@ -291,11 +337,36 @@ export default function Companies() {
                     value={companyForm.name}
                     onChange={(e) => setCompanyForm((p) => ({ ...p, name: e.target.value }))}
                   />
-                  <Input
-                    placeholder="CNPJ (opcional)"
-                    value={companyForm.cnpj}
-                    onChange={(e) => setCompanyForm((p) => ({ ...p, cnpj: e.target.value }))}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="CNPJ (opcional)"
+                      value={companyForm.cnpj}
+                      onChange={(e) => setCompanyForm((p) => ({ ...p, cnpj: e.target.value }))}
+                      onBlur={() =>
+                        handleLookupCnpj(companyForm.cnpj, setCompanyForm, setCnpjStatus, setCnpjMessage)
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => handleLookupCnpj(companyForm.cnpj, setCompanyForm, setCnpjStatus, setCnpjMessage)}
+                      disabled={cnpjStatus === "loading"}
+                    >
+                      Validar
+                    </Button>
+                  </div>
+                  {cnpjStatus !== "idle" && (
+                    <p
+                      className={`text-xs ${
+                        cnpjStatus === "valid"
+                          ? "text-emerald-600"
+                          : cnpjStatus === "loading"
+                            ? "text-gray-500"
+                            : "text-red-600"
+                      }`}
+                    >
+                      {cnpjMessage}
+                    </p>
+                  )}
                   <Input
                     placeholder="E-mail"
                     value={companyForm.email}
@@ -313,10 +384,10 @@ export default function Companies() {
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Empresas cadastradas</CardTitle>
-                  <CardDescription>Lista local (apenas para demonstração).</CardDescription>
-                </CardHeader>
+              <CardHeader>
+                <CardTitle>Empresas cadastradas</CardTitle>
+                <CardDescription>Empresas vinculadas ao ecossistema.</CardDescription>
+              </CardHeader>
                 <CardContent className="space-y-2">
                   {companies.length === 0 ? (
                     <p className="text-sm text-gray-500">Nenhuma empresa cadastrada.</p>
@@ -402,10 +473,10 @@ export default function Companies() {
               </Card>
 
               <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Partes cadastradas</CardTitle>
-                  <CardDescription>Lista local (apenas para demonstração).</CardDescription>
-                </CardHeader>
+              <CardHeader>
+                <CardTitle>Partes cadastradas</CardTitle>
+                <CardDescription>Contatos e representantes cadastrados.</CardDescription>
+              </CardHeader>
                 <CardContent className="space-y-2">
                   {parties.length === 0 ? (
                     <p className="text-sm text-gray-500">Nenhuma parte cadastrada.</p>
@@ -443,10 +514,6 @@ export default function Companies() {
         </Tabs>
 
         <Separator />
-        <p className="text-xs text-gray-500">
-          Observação: esta tela usa dados locais para demonstrar a experiência. Integração com API pode
-          ser plugada em seguida para persistência real.
-        </p>
       </div>
 
       <Dialog open={editCompanyModalOpen} onOpenChange={setEditCompanyModalOpen}>
@@ -461,11 +528,38 @@ export default function Companies() {
               value={editCompanyForm.name}
               onChange={(e) => setEditCompanyForm((p) => ({ ...p, name: e.target.value }))}
             />
-            <Input
-              placeholder="CNPJ"
-              value={editCompanyForm.cnpj}
-              onChange={(e) => setEditCompanyForm((p) => ({ ...p, cnpj: e.target.value }))}
-            />
+            <div className="flex gap-2">
+              <Input
+                placeholder="CNPJ"
+                value={editCompanyForm.cnpj}
+                onChange={(e) => setEditCompanyForm((p) => ({ ...p, cnpj: e.target.value }))}
+                onBlur={() =>
+                  handleLookupCnpj(editCompanyForm.cnpj, setEditCompanyForm, setEditCnpjStatus, setEditCnpjMessage)
+                }
+              />
+              <Button
+                variant="outline"
+                onClick={() =>
+                  handleLookupCnpj(editCompanyForm.cnpj, setEditCompanyForm, setEditCnpjStatus, setEditCnpjMessage)
+                }
+                disabled={editCnpjStatus === "loading"}
+              >
+                Validar
+              </Button>
+            </div>
+            {editCnpjStatus !== "idle" && (
+              <p
+                className={`text-xs ${
+                  editCnpjStatus === "valid"
+                    ? "text-emerald-600"
+                    : editCnpjStatus === "loading"
+                      ? "text-gray-500"
+                      : "text-red-600"
+                }`}
+              >
+                {editCnpjMessage}
+              </p>
+            )}
             <Input
               placeholder="E-mail"
               value={editCompanyForm.email}

@@ -8,6 +8,15 @@ export const companiesService = {
   update: (id: string, payload: Partial<Company>) =>
     api.patch<Company>(`/api/companies/${id}`, payload),
   remove: (id: string) => api.delete<{ ok: boolean }>(`/api/companies/${id}`),
+  lookupCnpj: (cnpj: string) =>
+    api.get<{
+      valid: boolean;
+      cnpj: string;
+      corporateName?: string | null;
+      tradeName?: string | null;
+      status?: string | null;
+      error?: string;
+    }>(`/api/opencnpj?cnpj=${encodeURIComponent(cnpj)}`),
 };
 
 export const partiesService = {
