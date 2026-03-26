@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { FileText, Upload, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/api";
@@ -18,41 +17,85 @@ type AnalysisResult = {
 
 const normalizeText = (value: string) =>
   value
+    .replace(/```json|```/gi, "")
     .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/^\s*[-•]\s*/, "")
+    .replace(/^\s*[-*•]\s*/, "")
+    .replace(/\s+/g, " ")
     .trim();
 
-const parseAnalysis = (data: any): AnalysisResult => {
+const extractJsonPayload = (raw: string) => {
+  const clean = raw.trim();
+  if (!clean) return clean;
+  if (clean.startsWith("{") && clean.endsWith("}")) return clean;
+
+  const fenced =
+    clean.match(/```json\s*([\s\S]*?)```/i) ||
+    clean.match(/```\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    return clean.slice(start, end + 1).trim();
+  }
+  return clean;
+};
+
+const firstSentence = (value: string) => {
+  const m = value.match(/^(.+?[.!?])(\s|$)/);
+  return m ? m[1].trim() : value.trim();
+};
+
+const simplifyPoint = (value: string) => {
+  const clean = normalizeText(value);
+  if (!clean) return "";
+
+  const colonIdx = clean.indexOf(":");
+  if (colonIdx > 0) {
+    const head = clean.slice(0, colonIdx).trim();
+    const tail = clean.slice(colonIdx + 1).trim();
+    const shortTail = tail.length > 260 ? firstSentence(tail) : tail;
+    return shortTail ? `${head}: ${shortTail}` : head;
+  }
+
+  return clean.length > 260 ? firstSentence(clean) : clean;
+};
+
+const parseAnalysis = (data: unknown): AnalysisResult => {
   let payload: any = data;
-  if (typeof data === "string") {
+
+  if (typeof payload === "string") {
     try {
-      payload = JSON.parse(data);
+      payload = JSON.parse(extractJsonPayload(payload));
     } catch {
-      payload = { summary: data };
+      payload = { summary: normalizeText(payload) };
     }
   }
 
-  // Se vier "summary" contendo um JSON stringificado
   if (typeof payload?.summary === "string") {
-    const trimmed = payload.summary.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    const maybeJson = extractJsonPayload(payload.summary);
+    if (maybeJson.startsWith("{") && maybeJson.endsWith("}")) {
       try {
-        const parsed = JSON.parse(trimmed);
-        payload = { ...parsed, name: payload.name || parsed.name };
+        const parsed = JSON.parse(maybeJson);
+        payload = { ...parsed, name: payload?.name || parsed?.name };
       } catch {
-        // ignore
+        // keep current payload
       }
     }
   }
 
   const risksRaw = Array.isArray(payload?.risks) ? payload.risks : [];
-  const recsRaw = Array.isArray(payload?.recommendations) ? payload.recommendations : [];
+  const recommendationsRaw = Array.isArray(payload?.recommendations)
+    ? payload.recommendations
+    : [];
 
   return {
     name: payload?.name || "Contrato",
-    summary: normalizeText(payload?.summary || "Análise indisponível."),
-    risks: risksRaw.map((r: any) => normalizeText(String(r))).filter(Boolean),
-    recommendations: recsRaw.map((r: any) => normalizeText(String(r))).filter(Boolean),
+    summary: normalizeText(payload?.summary || "Analise indisponivel."),
+    risks: risksRaw.map((item: unknown) => simplifyPoint(String(item))).filter(Boolean),
+    recommendations: recommendationsRaw
+      .map((item: unknown) => simplifyPoint(String(item)))
+      .filter(Boolean),
   };
 };
 
@@ -62,8 +105,8 @@ export default function ContractAnalysis() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] || null;
-    setFile(f);
+    const selected = e.target.files?.[0] || null;
+    setFile(selected);
     setResult(null);
   };
 
@@ -72,24 +115,27 @@ export default function ContractAnalysis() {
       toast.error("Selecione um arquivo de contrato.");
       return;
     }
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
+
       const token = localStorage.getItem("jurisync_token");
       const res = await fetch(`${API_URL}/api/contract-analysis`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Falha ao analisar contrato");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Falha ao analisar contrato");
       }
+
       const data = await res.json();
-      const parsed = parseAnalysis({ ...data, name: file.name });
-      setResult(parsed);
-      toast.success("Análise concluída.");
+      setResult(parseAnalysis({ ...data, name: file.name }));
+      toast.success("Analise concluida.");
     } catch (err: any) {
       toast.error(err?.message || "Falha ao analisar contrato");
     } finally {
@@ -101,10 +147,8 @@ export default function ContractAnalysis() {
     <Layout>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Análise de Contratos</h1>
-          <p className="text-sm text-gray-500">
-            Envie um contrato para receber um resumo e alertas.
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">Analise de Contratos</h1>
+          <p className="text-sm text-gray-500">Envie um contrato para receber resumo, riscos e recomendacoes.</p>
         </div>
 
         <Card>
@@ -113,9 +157,7 @@ export default function ContractAnalysis() {
               <Upload className="h-5 w-5" />
               Upload do contrato
             </CardTitle>
-            <CardDescription>
-              Formatos aceitos: PDF, DOC ou DOCX.
-            </CardDescription>
+            <CardDescription>Formatos aceitos: PDF e DOCX.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
@@ -133,64 +175,62 @@ export default function ContractAnalysis() {
         </Card>
 
         {result && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Resumo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-700">{result.summary}</p>
-                </CardContent>
-              </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Resumo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-700 leading-6">{result.summary}</p>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShieldAlert className="h-5 w-5" />
-                    Riscos Identificados
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {result.risks.map((r) => (
-                    <div key={r} className="flex items-center gap-2 text-sm">
-                      <span className="h-2 w-2 rounded-full bg-red-500" />
-                      {r}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5" />
+                  Riscos Identificados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {result.risks.length === 0 ? (
+                  <p className="text-sm text-gray-500">Nenhum risco identificado.</p>
+                ) : (
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                    {result.risks.map((risk, idx) => (
+                      <li key={`${idx}-${risk.slice(0, 40)}`}>{risk}</li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5" />
-                    Recomendações
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {result.recommendations.map((r) => (
-                    <div key={r} className="flex items-center gap-2 text-sm">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      {r}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6" />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Recomendacoes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {result.recommendations.length === 0 ? (
+                  <p className="text-sm text-gray-500">Nenhuma recomendacao encontrada.</p>
+                ) : (
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                    {result.recommendations.map((item, idx) => (
+                      <li key={`${idx}-${item.slice(0, 40)}`}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {!result && (
-          <div className="text-sm text-gray-500">
-            Faça o upload de um contrato para gerar a análise.
-          </div>
-        )}
+        {!result && <div className="text-sm text-gray-500">Faca o upload para gerar a analise.</div>}
       </div>
     </Layout>
   );
