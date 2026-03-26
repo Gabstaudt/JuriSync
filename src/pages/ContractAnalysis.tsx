@@ -5,55 +5,56 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Upload, ShieldAlert, Calendar, DollarSign, CheckCircle2 } from "lucide-react";
+import { FileText, Upload, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { API_URL } from "@/lib/api";
 
 type AnalysisResult = {
   name: string;
   summary: string;
-  keyDates: { label: string; value: string }[];
-  values: { label: string; value: string }[];
   risks: string[];
-  clauses: string[];
   recommendations: string[];
 };
 
-const mockAnalyze = (file: File): Promise<AnalysisResult> =>
-  new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        name: file.name,
-        summary:
-          "Contrato de prestação de serviços com prazo determinado. Não há cláusula de reajuste automático. Previsão de multa por rescisão antecipada.",
-        keyDates: [
-          { label: "Início", value: "15/03/2026" },
-          { label: "Término", value: "15/03/2027" },
-          { label: "Revisão", value: "15/02/2027" },
-        ],
-        values: [
-          { label: "Valor total", value: "R$ 180.000,00" },
-          { label: "Multa rescisão", value: "10% do saldo" },
-          { label: "Reajuste", value: "Não previsto" },
-        ],
-        risks: [
-          "Cláusula de rescisão com multa elevada.",
-          "Ausência de SLA detalhado para penalidades.",
-          "Prazos de pagamento sem carência.",
-        ],
-        clauses: [
-          "Objeto e escopo dos serviços.",
-          "Obrigações das partes.",
-          "Rescisão e penalidades.",
-          "Confidencialidade e LGPD.",
-        ],
-        recommendations: [
-          "Negociar redução da multa de rescisão.",
-          "Incluir SLA com métricas objetivas.",
-          "Definir índice de reajuste anual.",
-        ],
-      });
-    }, 1200);
-  });
+const normalizeText = (value: string) =>
+  value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/^\s*[-•]\s*/, "")
+    .trim();
+
+const parseAnalysis = (data: any): AnalysisResult => {
+  let payload: any = data;
+  if (typeof data === "string") {
+    try {
+      payload = JSON.parse(data);
+    } catch {
+      payload = { summary: data };
+    }
+  }
+
+  // Se vier "summary" contendo um JSON stringificado
+  if (typeof payload?.summary === "string") {
+    const trimmed = payload.summary.trim();
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        payload = { ...parsed, name: payload.name || parsed.name };
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const risksRaw = Array.isArray(payload?.risks) ? payload.risks : [];
+  const recsRaw = Array.isArray(payload?.recommendations) ? payload.recommendations : [];
+
+  return {
+    name: payload?.name || "Contrato",
+    summary: normalizeText(payload?.summary || "Análise indisponível."),
+    risks: risksRaw.map((r: any) => normalizeText(String(r))).filter(Boolean),
+    recommendations: recsRaw.map((r: any) => normalizeText(String(r))).filter(Boolean),
+  };
+};
 
 export default function ContractAnalysis() {
   const [file, setFile] = useState<File | null>(null);
@@ -73,8 +74,21 @@ export default function ContractAnalysis() {
     }
     setLoading(true);
     try {
-      const res = await mockAnalyze(file);
-      setResult(res);
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = localStorage.getItem("jurisync_token");
+      const res = await fetch(`${API_URL}/api/contract-analysis`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Falha ao analisar contrato");
+      }
+      const data = await res.json();
+      const parsed = parseAnalysis({ ...data, name: file.name });
+      setResult(parsed);
       toast.success("Análise concluída.");
     } catch (err: any) {
       toast.error(err?.message || "Falha ao analisar contrato");
@@ -168,54 +182,7 @@ export default function ContractAnalysis() {
               </Card>
             </div>
 
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Datas-chave
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {result.keyDates.map((d) => (
-                    <div key={d.label} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">{d.label}</span>
-                      <span className="font-medium">{d.value}</span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Valores e condições
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {result.values.map((v) => (
-                    <div key={v.label} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">{v.label}</span>
-                      <span className="font-medium">{v.value}</span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cláusulas relevantes</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {result.clauses.map((c) => (
-                    <Badge key={c} variant="secondary">
-                      {c}
-                    </Badge>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+            <div className="space-y-6" />
           </div>
         )}
 
