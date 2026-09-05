@@ -93,6 +93,13 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
 
+          {/* Logo (visível apenas quando a sidebar com a marca está oculta) */}
+          <img
+            src="/logos/svg/jurisync-simbolo.svg"
+            alt="JuriSync"
+            className="h-7 w-auto sm:hidden"
+          />
+
           {/* Page title */}
           <div className="hidden sm:block">
             <h1 className="text-xl font-semibold text-foreground">
