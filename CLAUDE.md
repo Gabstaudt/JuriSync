@@ -108,3 +108,54 @@ app/
 ```
 
 This structure provides a clean separation of concerns between UI components, routes, and application logic.
+
+## Design System / Branding (JuriSync)
+
+A marca JuriSync usa a seguinte paleta institucional. Estas cores devem substituir os tokens genéricos do shadcn em `src/index.css` / `tailwind.config.ts` ao longo da refatoração de UI/UX.
+
+- **Tinta** `#1B2B4B` — azul-marinho institucional; texto da marca e fundos escuros.
+- **Verde** `#3F8C68` — acento (a barra inferior da balança). Em fundo escuro, usar `#5BA87F`.
+- **Papel** `#F5F4F0` — fundo neutro alternativo ao branco.
+- **Preto** `#000000` — só na versão monocromática (carimbo, gravação, fax, sobre fotografia).
+
+### Assets de logo
+
+Todos os arquivos estão em `public/logos/svg/` e `public/logos/png/`.
+
+| Uso | Arquivo |
+|---|---|
+| Cabeçalho do sistema, documentos, e-mail (fundo claro) | `jurisync-horizontal.svg` / `.png` |
+| Fundo escuro / barra de navegação em tinta | `jurisync-horizontal-branco.svg` / `.png` |
+| Espaços quadrados: capa de proposta, redes sociais, crachá (claro) | `jurisync-vertical.svg` / `.png` |
+| Espaços quadrados (fundo escuro) | `jurisync-vertical-branco.svg` |
+| Favicon do navegador — símbolo em quadrado tinta, cantos arredondados | `jurisync-favicon.svg` |
+| Ícone de app / atalho — 1024×1024, pronto para iOS, Android e PWA | `jurisync-icone-1024.png` |
+| Avatar, marca d'água, símbolo solto (claro) | `jurisync-simbolo.svg` / `.png` |
+| Avatar, marca d'água, símbolo solto (escuro) | `jurisync-simbolo-branco.svg` / `.png` |
+| Carimbo, gravação, fax, sobre fotografia — horizontal mono preto | `jurisync-horizontal-mono-preto.svg` / `.png` |
+| Carimbo, gravação, fax, sobre fotografia — símbolo mono preto (fundo claro) | `jurisync-simbolo-mono-preto.svg` |
+| Carimbo, gravação, fax, sobre fotografia — símbolo mono branco (fundo escuro) | `jurisync-simbolo-mono-branco.svg` |
+
+### Plano de refatoração de UI/UX
+
+Direção: linguagem visual de processo jurídico físico (dossiê, carimbo, numeração de protocolo, papel) executada com precisão de software — evitando tanto o "SaaS azul-corporativo genérico" quanto o cliché "escritório = serifa dourada".
+
+**Tokens de cor** (a atualizar em `src/index.css`):
+- Primária → Tinta `#1B2B4B`
+- Acento (ações positivas/sucesso, elemento da marca) → Verde `#3F8C68` (light) / `#5BA87F` (dark)
+- Fundo alternativo → Papel `#F5F4F0`
+- Mono → Preto `#000000` (uso restrito a contexto de documento/carimbo)
+- Manter um tom terracota/vermelho separado (já existente via `--destructive`) reservado exclusivamente para estado crítico/prazo vencendo — nunca decorativo.
+
+**Tipografia**: par com contraste de função — serifada institucional para títulos de página e números de processo/contrato; sans grotesk neutra para UI e corpo de texto. Sem itálico/negrito pontual em palavra única do título, sem ALL CAPS em labels.
+
+**Layout**: sidebar mais estreita ("lombada de dossiê"), hairlines em vez de `box-shadow` genérico em cards, radius reduzido e consistente com a função (0 em tabelas/listas, sutil em elementos interativos). Logo horizontal (`jurisync-horizontal.svg`) no header sobre fundo claro; trocar para `jurisync-horizontal-branco.svg` na sidebar/nav em tinta.
+
+**Ordem de execução**:
+1. Tokens em `src/index.css` e `tailwind.config.ts` (cores, radius por contexto).
+2. Componentes-base em `src/components/ui/` (Button, Card, Badge, Table) — remover sombra genérica, revisar foco/acessibilidade.
+3. Layout global: `Sidebar.tsx`, `Header`, `NotificationCenter.tsx` — aplicar logos e paleta nova.
+4. Favicon (`jurisync-favicon.svg`) e ícone PWA (`jurisync-icone-1024.png`) em `index.html` / manifest.
+5. Páginas por ordem de tráfego: Dashboard → Contracts/ContractDetails → Processes → Folders → Chat/Companies/Settings.
+6. Copy pass: labels, empty states, mensagens de erro em voz ativa e vocabulário jurídico real.
+7. QA visual: screenshots antes/depois, contraste, navegação por teclado, `prefers-reduced-motion`, responsivo mobile.
