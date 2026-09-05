@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+﻿import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import {
   Card,
@@ -9,10 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -23,27 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Settings as SettingsIcon,
   Bell,
-  Mail,
-  Shield,
-  Database,
   Download,
-  Upload,
-  Trash2,
-  AlertTriangle,
   Check,
-  Clock,
-  Globe,
-  Lock,
-  Eye,
-  Smartphone,
-  Monitor,
 } from "lucide-react";
 import { toast } from "sonner";
+import { settingsService } from "@/lib/services/settings";
 
 export default function Settings() {
-  const { user, hasPermission } = useAuth();
   const [settings, setSettings] = useState({
     notifications: {
       emailEnabled: true,
@@ -52,33 +36,41 @@ export default function Settings() {
       commentNotifications: true,
       daysBeforeExpiry: 7,
     },
-    display: {
-      theme: "light",
-      language: "pt-BR",
-      timezone: "America/Sao_Paulo",
-      dateFormat: "DD/MM/YYYY",
-    },
-    privacy: {
-      profileVisibility: "team",
-      activityTracking: true,
-      dataSharing: false,
-    },
-    system: {
-      autoBackup: true,
-      backupFrequency: "weekly",
-      dataRetention: "2years",
-    },
   });
+  const [loading, setLoading] = useState(true);
 
-  const handleSaveSettings = () => {
-    // In production, this would save to backend
-    localStorage.setItem("jurisync_settings", JSON.stringify(settings));
-    toast.success("Configurações salvas com sucesso!");
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const data = await settingsService.get();
+        if (!mounted) return;
+        if (data?.notifications) {
+          setSettings({ notifications: data.notifications });
+        }
+      } catch (err: any) {
+        if (mounted) toast.error(err?.message || "Erro ao carregar configuracoes");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleSaveSettings = async () => {
+    try {
+      await settingsService.update(settings);
+      toast.success("Configurações salvas com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao salvar configuracoes");
+    }
   };
 
-  const handleResetSettings = () => {
-    // Reset to default settings
-    setSettings({
+  const handleResetSettings = async () => {
+    const defaults = {
       notifications: {
         emailEnabled: true,
         contractExpiry: true,
@@ -86,36 +78,31 @@ export default function Settings() {
         commentNotifications: true,
         daysBeforeExpiry: 7,
       },
-      display: {
-        theme: "light",
-        language: "pt-BR",
-        timezone: "America/Sao_Paulo",
-        dateFormat: "DD/MM/YYYY",
-      },
-      privacy: {
-        profileVisibility: "team",
-        activityTracking: true,
-        dataSharing: false,
-      },
-      system: {
-        autoBackup: true,
-        backupFrequency: "weekly",
-        dataRetention: "2years",
-      },
-    });
-    toast.success("Configurações resetadas para o padrão");
+    };
+    setSettings(defaults);
+    try {
+      await settingsService.update(defaults);
+      toast.success("Configurações resetadas para o padrão");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao resetar configuracoes");
+    }
   };
 
-  const handleExportData = () => {
-    // Simulate data export
-    toast.success(
-      "Exportação de dados iniciada. Você receberá um e-mail quando estiver pronta.",
-    );
-  };
-
-  const handleImportData = () => {
-    // Simulate data import
-    toast.info("Funcionalidade de importação em desenvolvimento");
+  const handleExportData = async () => {
+    try {
+      const { blob, filename } = await settingsService.exportData();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Exportação de dados concluída.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao exportar dados");
+    }
   };
 
   const updateSetting = (category: string, key: string, value: any) => {
@@ -141,10 +128,10 @@ export default function Settings() {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleResetSettings}>
+            <Button variant="outline" onClick={handleResetSettings} disabled={loading}>
               Resetar
             </Button>
-            <Button onClick={handleSaveSettings}>
+            <Button onClick={handleSaveSettings} disabled={loading}>
               <Check className="h-4 w-4 mr-2" />
               Salvar
             </Button>
@@ -152,13 +139,9 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="notifications" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="notifications">Notificações</TabsTrigger>
-            <TabsTrigger value="display">Exibição</TabsTrigger>
             <TabsTrigger value="privacy">Privacidade</TabsTrigger>
-            {user?.role === "admin" && (
-              <TabsTrigger value="system">Sistema</TabsTrigger>
-            )}
           </TabsList>
 
           {/* Notifications */}
@@ -272,181 +255,12 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* Display */}
-          <TabsContent value="display" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Monitor className="h-5 w-5" />
-                  Preferências de Exibição
-                </CardTitle>
-                <CardDescription>
-                  Personalize a aparência do sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="theme">Tema</Label>
-                    <Select
-                      value={settings.display.theme}
-                      onValueChange={(value) =>
-                        updateSetting("display", "theme", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="light">Claro</SelectItem>
-                        <SelectItem value="dark">Escuro</SelectItem>
-                        <SelectItem value="system">Sistema</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Idioma</Label>
-                    <Select
-                      value={settings.display.language}
-                      onValueChange={(value) =>
-                        updateSetting("display", "language", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pt-BR">
-                          Português (Brasil)
-                        </SelectItem>
-                        <SelectItem value="en-US">English (US)</SelectItem>
-                        <SelectItem value="es-ES">Español</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="timezone">Fuso Horário</Label>
-                    <Select
-                      value={settings.display.timezone}
-                      onValueChange={(value) =>
-                        updateSetting("display", "timezone", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="America/Sao_Paulo">
-                          São Paulo (UTC-3)
-                        </SelectItem>
-                        <SelectItem value="America/New_York">
-                          New York (UTC-5)
-                        </SelectItem>
-                        <SelectItem value="Europe/London">
-                          London (UTC+0)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dateFormat">Formato de Data</Label>
-                    <Select
-                      value={settings.display.dateFormat}
-                      onValueChange={(value) =>
-                        updateSetting("display", "dateFormat", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                        <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                        <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Privacy */}
           <TabsContent value="privacy" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Privacidade e Segurança
-                </CardTitle>
-                <CardDescription>
-                  Controle como seus dados são utilizados
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="profileVisibility">
-                    Visibilidade do Perfil
-                  </Label>
-                  <Select
-                    value={settings.privacy.profileVisibility}
-                    onValueChange={(value) =>
-                      updateSetting("privacy", "profileVisibility", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Público</SelectItem>
-                      <SelectItem value="team">Apenas Equipe</SelectItem>
-                      <SelectItem value="private">Privado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h4 className="font-medium">Rastreamento de Atividades</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Permitir que o sistema registre suas atividades para
-                      analytics
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.privacy.activityTracking}
-                    onCheckedChange={(checked) =>
-                      updateSetting("privacy", "activityTracking", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h4 className="font-medium">Compartilhamento de Dados</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Compartilhar dados anônimos para melhoria do produto
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.privacy.dataSharing}
-                    onCheckedChange={(checked) =>
-                      updateSetting("privacy", "dataSharing", checked)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
                 <CardTitle>Gerenciamento de Dados</CardTitle>
-                <CardDescription>Exporte ou remova seus dados</CardDescription>
+                <CardDescription>Exporte seus dados do sistema</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -465,105 +279,9 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* System (Admin only) */}
-          {user?.role === "admin" && (
-            <TabsContent value="system" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="h-5 w-5" />
-                    Configurações do Sistema
-                  </CardTitle>
-                  <CardDescription>
-                    Configurações globais do sistema (apenas administradores)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <h4 className="font-medium">Backup Automático</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Realizar backup automático dos dados
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.system.autoBackup}
-                      onCheckedChange={(checked) =>
-                        updateSetting("system", "autoBackup", checked)
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="backupFrequency">
-                      Frequência do Backup
-                    </Label>
-                    <Select
-                      value={settings.system.backupFrequency}
-                      onValueChange={(value) =>
-                        updateSetting("system", "backupFrequency", value)
-                      }
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Diário</SelectItem>
-                        <SelectItem value="weekly">Semanal</SelectItem>
-                        <SelectItem value="monthly">Mensal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dataRetention">Retenção de Dados</Label>
-                    <Select
-                      value={settings.system.dataRetention}
-                      onValueChange={(value) =>
-                        updateSetting("system", "dataRetention", value)
-                      }
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1year">1 ano</SelectItem>
-                        <SelectItem value="2years">2 anos</SelectItem>
-                        <SelectItem value="5years">5 anos</SelectItem>
-                        <SelectItem value="forever">Indefinidamente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-red-600 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      Zona de Perigo
-                    </h4>
-
-                    <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
-                      <div className="space-y-1">
-                        <h5 className="font-medium text-red-800">
-                          Importar Dados
-                        </h5>
-                        <p className="text-sm text-red-600">
-                          Substituir dados existentes por um backup
-                        </p>
-                      </div>
-                      <Button variant="destructive" onClick={handleImportData}>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Importar
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
         </Tabs>
       </div>
     </Layout>
   );
 }
+

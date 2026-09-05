@@ -20,9 +20,11 @@ import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
 import Companies from "./pages/Companies";
 import Processes from "./pages/Processes";
+import ProcessDetails from "./pages/ProcessDetails";
 import Models from "./pages/Models";
 import EmailConfirmed from "./pages/EmailConfirmed";
 import Tasks from "./pages/Tasks";
+import ContractAnalysis from "./pages/ContractAnalysis";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Processes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/processes/:id"
+              element={
+                <ProtectedRoute>
+                  <ProcessDetails />
                 </ProtectedRoute>
               }
             />
@@ -166,7 +176,7 @@ const App = () => (
               path="/analytics"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <ContractAnalysis />
                 </ProtectedRoute>
               }
             />

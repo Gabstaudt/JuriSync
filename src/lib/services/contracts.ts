@@ -1,5 +1,6 @@
 import { api, API_URL } from "@/lib/api";
 import { Contract, ContractComment, ContractHistoryEntry } from "@/types/contract";
+import { Process } from "@/types/process";
 
 export interface ContractFiltersApi {
   status?: string;
@@ -50,6 +51,13 @@ export const contractsService = {
       id: string,
       payload: { type: string; message?: string; recipients: string[]; scheduledFor?: string | Date },
     ) => api.post<any>(`/api/contracts/${id}/notifications`, payload),
+  },
+  processes: {
+    list: (id: string) => api.get<Process[]>(`/api/contracts/${id}/processes`),
+    add: (id: string, processId: string) =>
+      api.post<{ ok: boolean }>(`/api/contracts/${id}/processes`, { processId }),
+    remove: (id: string, processId: string) =>
+      api.delete<{ ok: boolean }>(`/api/contracts/${id}/processes`, { processId }),
   },
   upload: async (file: File) => {
     const token = localStorage.getItem("jurisync_token");

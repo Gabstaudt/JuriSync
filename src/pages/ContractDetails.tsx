@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Contract } from "@/types/contract";
+import { Process } from "@/types/process";
 import { formatDate, formatCurrency } from "@/lib/contracts";
 import { ContractStatus } from "@/components/contracts/ContractStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,9 +43,11 @@ import {
   Send,
   Trash2,
   Upload,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { contractsService } from "@/lib/services/contracts";
+import { processesService } from "@/lib/services/processes";
 import { API_URL } from "@/lib/api";
 import { usersService } from "@/lib/services/users";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +57,11 @@ export default function ContractDetails() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [contract, setContract] = useState<Contract | null>(null);
+  const [linkedProcesses, setLinkedProcesses] = useState<Process[]>([]);
+  const [allProcesses, setAllProcesses] = useState<Process[]>([]);
+  const [linkProcessOpen, setLinkProcessOpen] = useState(false);
+  const [selectedProcessId, setSelectedProcessId] = useState("");
+  const [linkingProcess, setLinkingProcess] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [showFileModal, setShowFileModal] = useState(false);
@@ -78,9 +86,13 @@ export default function ContractDetails() {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const c = await contractsService.get(id);
-        const comments = await contractsService.comments.list(id);
-        const history = await contractsService.history.list(id);
+        const [c, comments, history, linkedProcs, procList] = await Promise.all([
+          contractsService.get(id),
+          contractsService.comments.list(id),
+          contractsService.history.list(id),
+          contractsService.processes.list(id),
+          processesService.list(),
+        ]);
         if (!mounted) return;
         setContract({
           ...c,
@@ -101,6 +113,8 @@ export default function ContractDetails() {
             timestamp: new Date(h.timestamp),
           })),
         });
+        setLinkedProcesses(Array.isArray(linkedProcs) ? linkedProcs : []);
+        setAllProcesses(Array.isArray(procList) ? procList : []);
         try {
           const userList = await usersService.list();
           if (!mounted) return;
@@ -313,6 +327,35 @@ export default function ContractDetails() {
       setShowEditModal(false);
     } catch (err: any) {
       toast.error(err?.message || "Erro ao salvar");
+    }
+  };
+  const availableProcesses = allProcesses.filter(
+    (p) => !linkedProcesses.some((lp) => lp.id === p.id),
+  );
+  const handleLinkProcess = async () => {
+    if (!contract || !selectedProcessId) return;
+    setLinkingProcess(true);
+    try {
+      await contractsService.processes.add(contract.id, selectedProcessId);
+      const linked = allProcesses.find((p) => p.id === selectedProcessId);
+      if (linked) setLinkedProcesses((prev) => [linked, ...prev]);
+      setSelectedProcessId("");
+      setLinkProcessOpen(false);
+      toast.success("Processo vinculado");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao vincular processo");
+    } finally {
+      setLinkingProcess(false);
+    }
+  };
+  const handleUnlinkProcess = async (processId: string) => {
+    if (!contract) return;
+    try {
+      await contractsService.processes.remove(contract.id, processId);
+      setLinkedProcesses((prev) => prev.filter((p) => p.id !== processId));
+      toast.success("Vinculo removido");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao remover vinculo");
     }
   };
   const handleSendNotification = async () => {
@@ -676,6 +719,52 @@ export default function ContractDetails() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  Processos vinculados
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => setLinkProcessOpen(true)}
+                >
+                  Vincular processo
+                </Button>
+                {linkedProcesses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum processo vinculado.</p>
+                ) : (
+                  linkedProcesses.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between border rounded-md p-3">
+                      <div>
+                        <p className="font-medium">{p.title}</p>
+                        <p className="text-xs text-muted-foreground">Status: {p.status}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/processes/${p.id}`)}
+                        >
+                          Ver
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleUnlinkProcess(p.id)}
+                        >
+                          Remover
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
                   Histórico
                 </CardTitle>
@@ -924,6 +1013,41 @@ export default function ContractDetails() {
               Cancelar
             </Button>
             <Button onClick={handleSaveEdit}>Salvar alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={linkProcessOpen} onOpenChange={setLinkProcessOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular processo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Processo</Label>
+            <Select value={selectedProcessId} onValueChange={setSelectedProcessId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um processo" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableProcesses.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.title}
+                  </SelectItem>
+                ))}
+                {!availableProcesses.length && (
+                  <SelectItem value="__none__" disabled>
+                    Nenhum processo disponivel
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setLinkProcessOpen(false)} disabled={linkingProcess}>
+              Cancelar
+            </Button>
+            <Button onClick={handleLinkProcess} disabled={!selectedProcessId || linkingProcess}>
+              {linkingProcess ? "Vinculando..." : "Vincular"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

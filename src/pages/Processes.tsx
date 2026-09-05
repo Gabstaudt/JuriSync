@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,7 @@ const actionGroups = ["Administrativo", "Civel", "Trabalhista", "Tributario", "R
 const phases = ["Negociacao", "Investigacao", "Instrucao", "Audiencia", "Recursos", "Execucao", "Marketing", "Outro"];
 
 const Processes = () => {
+  const navigate = useNavigate();
   const [processes, setProcesses] = useState<Process[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -197,7 +199,11 @@ const Processes = () => {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((p) => (
-            <Card key={p.id} className="flex flex-col">
+            <Card
+              key={p.id}
+              className="flex flex-col cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => navigate(`/processes/${p.id}`)}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-lg">{p.title}</CardTitle>
