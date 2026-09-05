@@ -37,7 +37,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   useEffect(() => {
     let active = true;
+    let inFlight = false;
     const fetchUnread = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const convs = await chatService.listConversations();
         if (!active) return;
@@ -45,6 +48,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         setUnreadChat(total);
       } catch {
         // silencioso
+      } finally {
+        inFlight = false;
       }
     };
     fetchUnread();

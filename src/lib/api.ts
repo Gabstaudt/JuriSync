@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const REQUEST_TIMEOUT_MS = 15000;
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
@@ -18,11 +19,25 @@ async function request<T>(
   const authToken = token || localStorage.getItem("jurisync_token");
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      throw new Error("Tempo de resposta excedido. Tente novamente.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     let message = `Erro ${res.status}`;

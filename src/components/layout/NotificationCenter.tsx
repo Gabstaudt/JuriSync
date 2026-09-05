@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Check, Clock, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [source, setSource] = useState<EventSource | null>(null);
+  const sourceRef = useRef<EventSource | null>(null);
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -49,6 +49,7 @@ export function NotificationCenter() {
     const token = localStorage.getItem("jurisync_token");
     if (token) {
       const es = new EventSource(`${API_URL}/api/notifications/stream?token=${token}`);
+      sourceRef.current = es;
       es.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
@@ -61,12 +62,13 @@ export function NotificationCenter() {
       };
       es.onerror = () => {
         es.close();
+        if (sourceRef.current === es) sourceRef.current = null;
       };
-      setSource(es);
     }
     return () => {
       active = false;
-      if (source) source.close();
+      sourceRef.current?.close();
+      sourceRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
