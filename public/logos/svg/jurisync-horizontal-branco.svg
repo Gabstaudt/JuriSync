@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 100" width="430" height="100" role="img" aria-label="JuriSync">
+  <defs></defs>
+  <g transform="translate(0 0) scale(1)">
+    <rect x="46" y="14" width="9" height="72" fill="#FFFFFF"></rect>
+    <rect x="10" y="32" width="36" height="9" fill="#FFFFFF"></rect>
+    <rect x="54" y="62" width="36" height="9" fill="#5BA87F"></rect>
+  </g>
+  <text x="126" y="72" font-family="Newsreader, Georgia, 'Times New Roman', serif" font-weight="500" font-size="62" letter-spacing="-0.6" fill="#FFFFFF">JuriSync</text>
+</svg>
