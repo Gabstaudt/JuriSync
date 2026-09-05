@@ -203,7 +203,7 @@ const getRoleColor = (role: UserRole) => {
 
     admin: "bg-red-100 text-red-800",
 
-    manager: "bg-blue-100 text-blue-800",
+    manager: "bg-primary/10 text-primary",
 
     user: "bg-green-100 text-green-800",
 

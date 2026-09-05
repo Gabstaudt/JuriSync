@@ -372,11 +372,11 @@ export default function FolderContracts() {
               <IconComponent className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-foreground">
                 {folder.name}
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   {folder.description || "Sem descricao"}
                 </p>
                 <Badge
@@ -467,10 +467,10 @@ export default function FolderContracts() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-              <div className="h-4 w-4 bg-blue-600 rounded-full" />
+              <div className="h-4 w-4 bg-primary rounded-full" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary">
                 {formatCurrency(getTotalValue())}
               </div>
               <p className="text-xs text-muted-foreground">

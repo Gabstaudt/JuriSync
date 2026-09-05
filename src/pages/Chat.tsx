@@ -425,9 +425,9 @@ export default function Chat() {
 
           <div>
 
-            <p className="text-sm text-gray-500">Mensagens privadas no ecossistema</p>
+            <p className="text-sm text-muted-foreground">Mensagens privadas no ecossistema</p>
 
-            <h1 className="text-2xl font-semibold text-gray-900">Chat interno</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Chat interno</h1>
 
           </div>
 
@@ -449,7 +449,7 @@ export default function Chat() {
 
               <CardTitle className="flex items-center gap-2 text-base">
 
-                <MessageSquarePlus className="h-4 w-4 text-blue-600" />
+                <MessageSquarePlus className="h-4 w-4 text-primary" />
 
                 Nova conversa
 
@@ -486,7 +486,7 @@ export default function Chat() {
                     </SelectContent>
                   </Select>
                   {!users.length && !loadingUsers && (
-                    <p className="text-xs text-gray-500">Nenhum usuario encontrado neste ecossistema.</p>
+                    <p className="text-xs text-muted-foreground">Nenhum usuario encontrado neste ecossistema.</p>
                   )}
                 </>
               ) : (
@@ -503,7 +503,7 @@ export default function Chat() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {!teams.length && <p className="text-xs text-gray-500">Nenhuma equipe disponivel.</p>}
+                  {!teams.length && <p className="text-xs text-muted-foreground">Nenhuma equipe disponivel.</p>}
                 </>
               )}
 
@@ -516,7 +516,7 @@ export default function Chat() {
               </Button>
               <Separator />
 
-              <div className="flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
 
                 <span>Conversas</span>
 
@@ -550,9 +550,9 @@ export default function Chat() {
 
                           active
 
-                            ? "border-blue-200 bg-blue-50"
+                            ? "border-primary/20 bg-primary/5"
 
-                            : "border-gray-200 hover:border-blue-200"
+                            : "border-border hover:border-primary/20"
 
                         }`}
 
@@ -562,23 +562,23 @@ export default function Chat() {
 
                           <div>
 
-                            <p className="text-sm font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-foreground">
 
                               {renderConversationLabel(conv)}
 
                             </p>
 
-                            <p className="text-xs text-gray-500 line-clamp-1">{preview}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{preview}</p>
 
                           </div>
 
                           <div className="text-right">
 
-                            <p className="text-[11px] text-gray-400">{formatWhen(conv.lastMessageAt)}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatWhen(conv.lastMessageAt)}</p>
 
                             {conv.unreadCount > 0 && (
 
-                              <span className="text-[11px] px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                              <span className="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary">
 
                                 {conv.unreadCount}
 
@@ -598,7 +598,7 @@ export default function Chat() {
 
                   {!conversations.length && (
 
-                    <p className="text-xs text-gray-500">Nenhuma conversa encontrada.</p>
+                    <p className="text-xs text-muted-foreground">Nenhuma conversa encontrada.</p>
 
                   )}
 
@@ -620,9 +620,9 @@ export default function Chat() {
 
                 <div>
 
-                  <p className="text-sm text-gray-500">Conversa</p>
+                  <p className="text-sm text-muted-foreground">Conversa</p>
 
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-foreground">
 
                     {selectedConversation ? renderConversationLabel(selectedConversation) : "Selecione um chat"}
 
@@ -630,7 +630,7 @@ export default function Chat() {
 
                 </div>
 
-                {loadingMessages && <span className="text-sm text-gray-500">carregando...</span>}
+                {loadingMessages && <span className="text-sm text-muted-foreground">carregando...</span>}
 
               </div>
 
@@ -656,13 +656,13 @@ export default function Chat() {
 
                           className={`rounded-lg border px-3 py-2 ${
 
-                            isSelf ? "border-blue-200 bg-blue-50" : "border-gray-200"
+                            isSelf ? "border-primary/20 bg-primary/5" : "border-border"
 
                           }`}
 
                         >
 
-                          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
 
                             <span>{m.senderName || m.senderEmail || m.senderId || "Usuario"}</span>
 
@@ -670,7 +670,7 @@ export default function Chat() {
 
                           </div>
 
-                          {m.content && <p className="text-sm text-gray-900">{m.content}</p>}
+                          {m.content && <p className="text-sm text-foreground">{m.content}</p>}
 
                           {m.attachments?.length ? (
 
@@ -688,7 +688,7 @@ export default function Chat() {
 
                                   rel="noreferrer"
 
-                                  className="text-xs px-2 py-1 rounded bg-gray-100 text-blue-700 inline-flex items-center gap-1"
+                                  className="text-xs px-2 py-1 rounded bg-muted text-primary inline-flex items-center gap-1"
 
                                 >
 
@@ -712,7 +712,7 @@ export default function Chat() {
 
                     {!messages.length && (
 
-                      <p className="text-sm text-gray-500">Nenhuma mensagem. Envie a primeira.</p>
+                      <p className="text-sm text-muted-foreground">Nenhuma mensagem. Envie a primeira.</p>
 
                     )}
 
@@ -754,7 +754,7 @@ export default function Chat() {
 
                   {files.length > 0 && (
 
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
 
                       {files.length} arquivo(s) pronto(s) para envio
 

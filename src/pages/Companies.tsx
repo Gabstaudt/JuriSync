@@ -231,8 +231,8 @@ export default function Companies() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Cadastro de contrapartes</p>
-            <h1 className="text-2xl font-semibold text-gray-900">Empresas e Partes</h1>
+            <p className="text-sm text-muted-foreground">Cadastro de contrapartes</p>
+            <h1 className="text-2xl font-semibold text-foreground">Empresas e Partes</h1>
           </div>
           <Badge variant="outline">Beta</Badge>
         </div>
@@ -248,16 +248,16 @@ export default function Companies() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500">Empresas</CardTitle>
+                  <CardTitle className="text-sm text-muted-foreground">Empresas</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between">
                   <div className="text-3xl font-semibold">{stats.companies}</div>
-                  <Building2 className="h-8 w-8 text-blue-600" />
+                  <Building2 className="h-8 w-8 text-primary" />
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500">Partes</CardTitle>
+                  <CardTitle className="text-sm text-muted-foreground">Partes</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between">
                   <div className="text-3xl font-semibold">{stats.parties}</div>
@@ -266,9 +266,9 @@ export default function Companies() {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-500">Integridade</CardTitle>
+                  <CardTitle className="text-sm text-muted-foreground">Integridade</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-gray-600">
+                <CardContent className="text-sm text-muted-foreground">
                   Mantenha empresas e partes atualizados para amarrar contratos e contatos.
                 </CardContent>
               </Card>
@@ -280,7 +280,7 @@ export default function Companies() {
               <Card className="lg:col-span-1">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <PlusCircle className="h-4 w-4 text-blue-600" />
+                    <PlusCircle className="h-4 w-4 text-primary" />
                     Adicionar empresa
                   </CardTitle>
                   <CardDescription>Cadastre a empresa vinculada aos contratos.</CardDescription>
@@ -319,7 +319,7 @@ export default function Companies() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {companies.length === 0 ? (
-                    <p className="text-sm text-gray-500">Nenhuma empresa cadastrada.</p>
+                    <p className="text-sm text-muted-foreground">Nenhuma empresa cadastrada.</p>
                   ) : (
                     companies.map((c) => (
                       <div
@@ -327,10 +327,10 @@ export default function Companies() {
                         className="border rounded-lg p-3 flex items-start justify-between"
                       >
                         <div>
-                          <p className="font-semibold text-gray-900">{c.name}</p>
-                          <p className="text-xs text-gray-500">{c.cnpj || "CNPJ não informado"}</p>
-                          <p className="text-xs text-gray-500">{c.email || "Sem e-mail"}</p>
-                          <p className="text-xs text-gray-500">{c.phone || "Sem telefone"}</p>
+                          <p className="font-semibold text-foreground">{c.name}</p>
+                          <p className="text-xs text-muted-foreground">{c.cnpj || "CNPJ não informado"}</p>
+                          <p className="text-xs text-muted-foreground">{c.email || "Sem e-mail"}</p>
+                          <p className="text-xs text-muted-foreground">{c.phone || "Sem telefone"}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline">Empresa</Badge>
@@ -408,7 +408,7 @@ export default function Companies() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {parties.length === 0 ? (
-                    <p className="text-sm text-gray-500">Nenhuma parte cadastrada.</p>
+                    <p className="text-sm text-muted-foreground">Nenhuma parte cadastrada.</p>
                   ) : (
                     parties.map((p) => (
                       <div
@@ -416,12 +416,12 @@ export default function Companies() {
                         className="border rounded-lg p-3 flex items-start justify-between"
                       >
                         <div>
-                          <p className="font-semibold text-gray-900">{p.name}</p>
-                          <p className="text-xs text-gray-500">{p.role}</p>
-                          <p className="text-xs text-gray-500">{p.email || "Sem e-mail"}</p>
-                          <p className="text-xs text-gray-500">{p.phone || "Sem telefone"}</p>
+                          <p className="font-semibold text-foreground">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.role}</p>
+                          <p className="text-xs text-muted-foreground">{p.email || "Sem e-mail"}</p>
+                          <p className="text-xs text-muted-foreground">{p.phone || "Sem telefone"}</p>
                           {p.companyName && (
-                            <p className="text-xs text-gray-500">Empresa: {p.companyName}</p>
+                            <p className="text-xs text-muted-foreground">Empresa: {p.companyName}</p>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -443,7 +443,7 @@ export default function Companies() {
         </Tabs>
 
         <Separator />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Observação: esta tela usa dados locais para demonstrar a experiência. Integração com API pode
           ser plugada em seguida para persistência real.
         </p>

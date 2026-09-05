@@ -370,8 +370,8 @@ const handleSubmit = async (e: React.FormEvent) => {
             Voltar
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Novo Contrato</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Novo Contrato</h1>
+            <p className="text-muted-foreground mt-1">
               Crie um novo contrato preenchendo as informações abaixo
             </p>
           </div>
@@ -554,7 +554,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               <div className="space-y-2">
                 <Label htmlFor="value">Valor do Contrato (R$) *</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="value"
                     type="number"
@@ -693,7 +693,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
 
               {addToFolder && (
-                <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                <div className="space-y-4 p-4 border rounded-lg bg-muted">
                   <div className="space-y-2">
                     <Label>Selecionar Pasta</Label>
                     <div className="flex gap-2">
@@ -814,7 +814,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                 <input
                   id="documents"
                   type="file"
@@ -824,11 +824,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                   disabled={isUploading}
                 />
                 <label htmlFor="documents" className="cursor-pointer block space-y-2">
-                  <FileText className="h-8 w-8 text-gray-400 mx-auto" />
-                  <p className="text-sm text-gray-600">
+                  <FileText className="h-8 w-8 text-muted-foreground mx-auto" />
+                  <p className="text-sm text-muted-foreground">
                     Clique para selecionar documentos ou arraste arquivos aqui
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     PDF, DOCX, DOC (m?x. 10MB cada)
                   </p>
                 </label>
@@ -854,7 +854,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
               )}
 
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 <p>? Apenas um arquivo principal por contrato.</p>
                 <p>? O arquivo fica associado e pode ser baixado na visualiza??o.</p>
               </div>
@@ -894,13 +894,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                   {formData.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
                     >
                       {tag}
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
+                        className="ml-1 text-primary hover:text-primary"
                       >
                         ×
                       </button>
@@ -940,7 +940,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
 
               {!formData.permissions.isPublic && (
-                <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                <div className="space-y-4 p-4 border rounded-lg bg-muted">
                   <div className="flex justify-between items-center">
                     <h4 className="font-medium">Permissões Específicas</h4>
                     <Button
@@ -1120,7 +1120,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white" />
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-border border-t-white" />
                   Salvando...
                 </>
               ) : (

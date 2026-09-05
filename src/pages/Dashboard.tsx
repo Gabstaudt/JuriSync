@@ -260,10 +260,10 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               Bem-vindo, {user?.name}! 👋
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-muted-foreground mt-1">
               Aqui está um resumo dos seus contratos hoje
             </p>
           </div>
@@ -343,10 +343,10 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-medium">
                 Contratos Ativos
               </CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-accent">
                 {stats.activeContracts}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -378,10 +378,10 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-medium">
                 Contratos Vencidos
               </CardTitle>
-              <Clock className="h-4 w-4 text-red-600" />
+              <Clock className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-destructive">
                 {stats.expiredContracts}
               </div>
               <p className="text-xs text-muted-foreground">Requerem atenção</p>

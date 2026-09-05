@@ -203,7 +203,7 @@ const getRoleColor = (role: UserRole) => {
 
     admin: "bg-red-100 text-red-800",
 
-    manager: "bg-blue-100 text-blue-800",
+    manager: "bg-primary/10 text-primary",
 
     user: "bg-green-100 text-green-800",
 
@@ -789,13 +789,13 @@ const startEditTeam = (teamId: string) => {
 
           <div>
 
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
 
               Gerenciar Usuários
 
             </h1>
 
-            <p className="text-gray-600 mt-1">
+            <p className="text-muted-foreground mt-1">
 
               Controle de acesso e permissões do sistema
 
@@ -1193,13 +1193,13 @@ const startEditTeam = (teamId: string) => {
 
               </CardTitle>
 
-              <Key className="h-4 w-4 text-blue-600" />
+              <Key className="h-4 w-4 text-primary" />
 
             </CardHeader>
 
             <CardContent>
 
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary">
 
                 {inviteCodes.filter((c) => c.isActive).length}
 
@@ -1341,9 +1341,9 @@ const startEditTeam = (teamId: string) => {
                       <TableRow>
                         <TableCell colSpan={6}>
                           <div className="space-y-2">
-                            <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
-                            <div className="h-4 bg-gray-100 rounded w-1/4 animate-pulse" />
-                            <div className="h-4 bg-gray-100 rounded w-1/5 animate-pulse" />
+                            <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
+                            <div className="h-4 bg-muted rounded w-1/4 animate-pulse" />
+                            <div className="h-4 bg-muted rounded w-1/5 animate-pulse" />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1565,9 +1565,9 @@ const startEditTeam = (teamId: string) => {
                       <TableRow>
                         <TableCell colSpan={7}>
                           <div className="space-y-2">
-                            <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
-                            <div className="h-4 bg-gray-100 rounded w-1/4 animate-pulse" />
-                            <div className="h-4 bg-gray-100 rounded w-1/5 animate-pulse" />
+                            <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
+                            <div className="h-4 bg-muted rounded w-1/4 animate-pulse" />
+                            <div className="h-4 bg-muted rounded w-1/5 animate-pulse" />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1581,7 +1581,7 @@ const startEditTeam = (teamId: string) => {
 
                           <div className="flex items-center gap-2">
 
-                            <code className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
+                            <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
 
                               {invite.code}
 
@@ -1617,7 +1617,7 @@ const startEditTeam = (teamId: string) => {
 
                           {invite.email || (
 
-                            <span className="text-gray-400">Qualquer</span>
+                            <span className="text-muted-foreground">Qualquer</span>
 
                           )}
 
@@ -1741,7 +1741,7 @@ const startEditTeam = (teamId: string) => {
                       className="flex flex-col gap-2 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{team.name}</p>
+                        <p className="text-sm font-semibold text-foreground">{team.name}</p>
                         {team.description && (
                           <p className="text-xs text-muted-foreground">{team.description}</p>
                         )}
@@ -2069,7 +2069,7 @@ const startEditTeam = (teamId: string) => {
 
             {selectedUser && (
               <div className="space-y-4 flex-1">
-                <div className="p-3 bg-gray-50 rounded-lg flex-shrink-0">
+                <div className="p-3 bg-muted rounded-lg flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-xs">

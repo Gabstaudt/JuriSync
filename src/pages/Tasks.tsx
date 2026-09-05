@@ -370,12 +370,12 @@ const Tasks = () => {
       <div className="space-y-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Tarefas</h1>
-            <p className="text-sm text-gray-500">Organize e acompanhe o andamento das tarefas.</p>
+            <h1 className="text-2xl font-semibold text-foreground">Tarefas</h1>
+            <p className="text-sm text-muted-foreground">Organize e acompanhe o andamento das tarefas.</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9 w-64"
                 placeholder="Pesquisar tarefas..."
@@ -432,13 +432,13 @@ const Tasks = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <CardTitle className="text-lg">{task.title}</CardTitle>
-                          <CardDescription className="mt-1 text-sm text-gray-600">
+                          <CardDescription className="mt-1 text-sm text-muted-foreground">
                             {task.description || "Sem descricao"}
                           </CardDescription>
                         </div>
                         <Badge className={priorityColors[task.priority]}>{priorityLabels[task.priority]}</Badge>
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {(() => {
                           const now = new Date();
                           const due = task.dueDate ? new Date(task.dueDate) : null;
@@ -463,7 +463,7 @@ const Tasks = () => {
                             </>
                           );
                         })()}
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-medium text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           {task.dueDate ? new Date(task.dueDate).toLocaleDateString("pt-BR") : "Sem prazo"}
                         </span>
@@ -475,9 +475,9 @@ const Tasks = () => {
                       </div>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                          <ListChecks className="h-4 w-4 text-gray-500" />
+                          <ListChecks className="h-4 w-4 text-muted-foreground" />
                           {statusLabels[task.status]}
                         </span>
                         {task.assignees?.length ? (
@@ -515,7 +515,7 @@ const Tasks = () => {
                   </Card>
                 ))}
                 {!filtered.length && (
-                  <div className="col-span-full flex h-32 items-center justify-center rounded-lg border border-dashed text-sm text-gray-500">
+                  <div className="col-span-full flex h-32 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
                     Nenhuma tarefa encontrada.
                   </div>
                 )}
@@ -526,24 +526,24 @@ const Tasks = () => {
           <div className="grid gap-4 md:grid-cols-3">
             {(["pendente", "em_andamento", "concluida"] as TaskStatus[]).map((status) => (
               <div key={status} className="rounded-lg border bg-white">
-                <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-                  <span className="text-sm font-medium text-gray-700">{statusLabels[status]}</span>
+                <div className="flex items-center justify-between px-4 py-3 border-b bg-muted">
+                  <span className="text-sm font-medium text-foreground">{statusLabels[status]}</span>
                   <Badge variant="outline">{kanbanColumns[status].length}</Badge>
                 </div>
                 <div className="p-3 space-y-3 min-h-[200px]">
                   {kanbanColumns[status].map((task) => (
-                    <Card key={task.id} className="flex flex-col border-gray-200 shadow-sm">
+                    <Card key={task.id} className="flex flex-col border-border shadow-sm">
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
                           <CardTitle className="text-base">{task.title}</CardTitle>
                           <Badge className={priorityColors[task.priority]}>{priorityLabels[task.priority]}</Badge>
                         </div>
-                        <CardDescription className="text-sm text-gray-600">
+                        <CardDescription className="text-sm text-muted-foreground">
                           {task.description || "Sem descricao"}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           {(() => {
                             const now = new Date();
                             const due = task.dueDate ? new Date(task.dueDate) : null;
@@ -571,7 +571,7 @@ const Tasks = () => {
                               </>
                             );
                           })()}
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-medium text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             {task.dueDate ? new Date(task.dueDate).toLocaleDateString("pt-BR") : "Sem prazo"}
                           </span>
@@ -620,7 +620,7 @@ const Tasks = () => {
                     </Card>
                   ))}
                   {!kanbanColumns[status].length && (
-                    <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-500">
+                    <div className="rounded-md border border-dashed border-border bg-muted p-4 text-center text-sm text-muted-foreground">
                       Nenhuma tarefa
                     </div>
                   )}

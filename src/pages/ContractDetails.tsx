@@ -392,8 +392,8 @@ export default function ContractDetails() {
     );
   }
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <div className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-muted/50">
+      <div className="bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -403,7 +403,7 @@ export default function ContractDetails() {
               </Button>
               <Separator orientation="vertical" className="h-8" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900 truncate">
+                <h1 className="text-xl font-semibold text-foreground truncate">
                   {contract.name}
                 </h1>
                 <p className="text-sm text-muted-foreground">ID: {contract.id}</p>
@@ -490,7 +490,7 @@ export default function ContractDetails() {
                             ? "text-red-600"
                             : contract.status === "expiring_soon"
                               ? "text-yellow-600"
-                              : "text-gray-900"
+                              : "text-foreground"
                         }`}
                       >
                         {formatDate(contract.endDate)}
@@ -549,8 +549,8 @@ export default function ContractDetails() {
                     {(contract.attachments || []).map((att) => (
                       <div key={att.id} className="flex items-center justify-between border rounded-md p-3">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-50 rounded-lg">
-                            <FileText className="h-5 w-5 text-blue-600" />
+                          <div className="p-2 bg-primary/5 rounded-lg">
+                            <FileText className="h-5 w-5 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium">{att.fileName}</p>
@@ -635,7 +635,7 @@ export default function ContractDetails() {
                               {formatDate(comment.createdAt)}
                             </p>
                           </div>
-                          <p className="text-sm text-gray-700">{comment.content}</p>
+                          <p className="text-sm text-foreground">{comment.content}</p>
                         </div>
                       </div>
                     ))
@@ -695,7 +695,7 @@ export default function ContractDetails() {
                             <p>{formatDate(entry.timestamp)}</p>
                           </div>
                           {entry.field && (
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-muted-foreground">
                               {entry.field}: {entry.oldValue} ? {entry.newValue}
                             </p>
                           )}

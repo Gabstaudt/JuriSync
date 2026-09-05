@@ -110,7 +110,7 @@ export default function Register() {
           <Button
             variant="ghost"
             onClick={() => navigate("/login")}
-            className="text-gray-600 hover:text-gray-900"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar ao Login
@@ -120,7 +120,7 @@ export default function Register() {
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1 pb-6">
             <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
                 <FileText className="h-7 w-7 text-white" />
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function Register() {
                       value={formData.name}
                       onChange={(e) => handleInputChange("name", e.target.value)}
                     />
-                    <User className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                    <User className="h-4 w-4 text-muted-foreground absolute right-3 top-3" />
                   </div>
                   {errors.name && (
                     <Alert variant="destructive">
@@ -162,7 +162,7 @@ export default function Register() {
                       value={formData.email}
                       onChange={(e) => handleInputChange("email", e.target.value)}
                     />
-                    <Mail className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                    <Mail className="h-4 w-4 text-muted-foreground absolute right-3 top-3" />
                   </div>
                   {errors.email && (
                     <Alert variant="destructive">
@@ -188,7 +188,7 @@ export default function Register() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -196,7 +196,7 @@ export default function Register() {
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
-                    <Lock className="h-4 w-4 text-gray-400 absolute right-10 top-3" />
+                    <Lock className="h-4 w-4 text-muted-foreground absolute right-10 top-3" />
                   </div>
                   {errors.password && (
                     <Alert variant="destructive">
@@ -218,7 +218,7 @@ export default function Register() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword((prev) => !prev)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -226,7 +226,7 @@ export default function Register() {
                         <Eye className="h-4 w-4" />
                       )}
                     </button>
-                    <Lock className="h-4 w-4 text-gray-400 absolute right-10 top-3" />
+                    <Lock className="h-4 w-4 text-muted-foreground absolute right-10 top-3" />
                   </div>
                   {errors.confirmPassword && (
                     <Alert variant="destructive">
@@ -266,14 +266,14 @@ export default function Register() {
                       }
                       disabled={isFirstAdmin && formData.role === "admin"}
                     />
-                    <Key className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                    <Key className="h-4 w-4 text-muted-foreground absolute right-3 top-3" />
                   </div>
                   {errors.accessCode && (
                     <Alert variant="destructive">
                       <AlertDescription>{errors.accessCode}</AlertDescription>
                     </Alert>
                   )}
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <input
                       type="checkbox"
                       checked={isFirstAdmin && formData.role === "admin"}
@@ -302,7 +302,7 @@ export default function Register() {
                         handleInputChange("ecosystemName", e.target.value)
                       }
                     />
-                    <Shield className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                    <Shield className="h-4 w-4 text-muted-foreground absolute right-3 top-3" />
                   </div>
                   {errors.ecosystemName && (
                     <Alert variant="destructive">
@@ -324,7 +324,7 @@ export default function Register() {
                         handleInputChange("department", e.target.value)
                       }
                     />
-                    <Building className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                    <Building className="h-4 w-4 text-muted-foreground absolute right-3 top-3" />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -336,7 +336,7 @@ export default function Register() {
                       value={formData.phone}
                       onChange={(e) => handleInputChange("phone", e.target.value)}
                     />
-                    <Phone className="h-4 w-4 text-gray-400 absolute right-3 top-3" />
+                    <Phone className="h-4 w-4 text-muted-foreground absolute right-3 top-3" />
                   </div>
                 </div>
               </div>
@@ -356,9 +356,9 @@ export default function Register() {
                 )}
               </Button>
 
-              <div className="text-center text-sm text-gray-600">
+              <div className="text-center text-sm text-muted-foreground">
                 Já tem uma conta?{" "}
-                <Link to="/login" className="text-blue-600 hover:text-blue-800">
+                <Link to="/login" className="text-primary hover:text-primary">
                   Acesse aqui
                 </Link>
               </div>

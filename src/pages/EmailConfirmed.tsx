@@ -7,7 +7,7 @@ export default function EmailConfirmed() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted px-4">
       <Card className="max-w-md w-full shadow-lg">
         <CardHeader className="text-center space-y-2">
           <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
