@@ -109,7 +109,7 @@ export function NotificationCenter() {
       case "success":
         return <Check className="h-4 w-4 text-green-600" />;
       default:
-        return <Bell className="h-4 w-4 text-blue-600" />;
+        return <Bell className="h-4 w-4 text-primary" />;
     }
   };
 
@@ -177,7 +177,7 @@ export function NotificationCenter() {
                   <div key={notification.id}>
                     <div
                       className={`p-4 hover:bg-muted/50 cursor-pointer ${
-                        !notification.isRead ? "bg-blue-50/50" : ""
+                        !notification.isRead ? "bg-primary/5" : ""
                       }`}
                       onClick={() => {
                         markAsRead(notification.id);
@@ -190,12 +190,12 @@ export function NotificationCenter() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
-                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                            <p className="text-sm font-medium text-foreground line-clamp-1">
                               {notification.title}
                             </p>
                             <div className="flex items-center gap-1 ml-2">
                               {!notification.isRead && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                <div className="w-2 h-2 bg-primary rounded-full"></div>
                               )}
                               <Button
                                 variant="ghost"

@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import {
-  FileText,
   Mail,
   Lock,
   Eye,
@@ -67,65 +66,62 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         {/* Left side - Branding and Features */}
         <div className="hidden lg:block space-y-8">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                <FileText className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">JuriSync</h1>
-                <p className="text-gray-600">Gestão Jurídica Inteligente</p>
-              </div>
-            </div>
+            <img
+              src="/logos/svg/jurisync-horizontal.svg"
+              alt="JuriSync"
+              className="h-10 w-auto"
+            />
+            <p className="text-muted-foreground">Gestão Jurídica Inteligente</p>
           </div>
 
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900">
+            <h2 className="text-2xl font-semibold text-foreground">
               Gerencie seus contratos com total controle
             </h2>
 
             <div className="space-y-4">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield className="h-5 w-5 text-blue-600" />
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
-                    Segurança Total
+                  <h3 className="font-semibold text-foreground">
+                    Segurança total
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Controle de acesso por níveis e criptografia de dados
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Users className="h-5 w-5 text-green-600" />
+                <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Users className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
-                    Trabalho em Equipe
+                  <h3 className="font-semibold text-foreground">
+                    Trabalho em equipe
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Colaboração em tempo real com sistema de permissões
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">
-                    Analytics Avançado
+                  <h3 className="font-semibold text-foreground">
+                    Analytics avançado
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Dashboards e relatórios para tomada de decisão
                   </p>
                 </div>
@@ -136,7 +132,7 @@ export default function Login() {
 
         {/* Right side - Login Form */}
         <div className="w-full max-w-md mx-auto lg:mx-0">
-          <Card className="shadow-xl border-0">
+          <Card className="border border-border shadow-sm">
             <CardHeader className="space-y-1 pb-6">
               <CardTitle className="text-2xl text-center">
                 Entrar no JuriSync
@@ -150,7 +146,7 @@ export default function Login() {
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
@@ -162,19 +158,19 @@ export default function Login() {
                           email: e.target.value,
                         }))
                       }
-                      className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
+                      className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
                       disabled={isLoading}
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email}</p>
+                    <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
@@ -186,13 +182,13 @@ export default function Login() {
                           password: e.target.value,
                         }))
                       }
-                      className={`pl-10 pr-10 ${errors.password ? "border-red-500" : ""}`}
+                      className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
                       disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                       disabled={isLoading}
                     >
                       {showPassword ? (
@@ -203,7 +199,7 @@ export default function Login() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="text-sm text-red-600">{errors.password}</p>
+                    <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                 </div>
 
@@ -223,15 +219,15 @@ export default function Login() {
                 <div className="absolute inset-0 flex items-center">
                   <Separator className="w-full" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-muted-foreground">
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-2 text-muted-foreground">
                     Ou teste com demo
                   </span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm text-gray-600 text-center">
+                <p className="text-sm text-muted-foreground text-center">
                   Acesso rápido para demonstração:
                 </p>
                 <div className="grid grid-cols-1 gap-2">
@@ -266,11 +262,11 @@ export default function Login() {
               </div>
 
               <div className="text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Não tem uma conta?{" "}
                   <Link
                     to="/register"
-                    className="text-blue-600 hover:underline font-medium"
+                    className="text-primary hover:underline font-medium"
                   >
                     Cadastre-se
                   </Link>
