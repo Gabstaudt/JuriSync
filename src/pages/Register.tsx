@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  FileText,
   Mail,
   Lock,
   Eye,
@@ -104,7 +103,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         <div className="mb-6">
           <Button
@@ -117,12 +116,14 @@ export default function Register() {
           </Button>
         </div>
 
-        <Card className="shadow-xl border-0">
+        <Card className="border border-border shadow-sm">
           <CardHeader className="space-y-1 pb-6">
             <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <FileText className="h-7 w-7 text-white" />
-              </div>
+              <img
+                src="/logos/svg/jurisync-horizontal.svg"
+                alt="JuriSync"
+                className="h-8 w-auto"
+              />
             </div>
             <CardTitle className="text-2xl text-center">
               Criar Conta no JuriSync
