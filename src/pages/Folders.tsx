@@ -583,8 +583,8 @@ export default function Folders() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pastas</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Pastas</h1>
+            <p className="text-muted-foreground mt-1">
               Organize seus contratos em pastas personalizadas
             </p>
           </div>
@@ -731,10 +731,10 @@ export default function Folders() {
               <CardTitle className="text-sm font-medium">
                 Pastas Personalizadas
               </CardTitle>
-              <Settings className="h-4 w-4 text-blue-600" />
+              <Settings className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary">
                 {visibleFolders.filter((f) => f.type === "custom").length}
               </div>
             </CardContent>

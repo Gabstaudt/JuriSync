@@ -184,10 +184,10 @@ export default function Models() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Central de modelos</p>
-            <h1 className="text-2xl font-semibold text-gray-900">Modelos de Contrato</h1>
+            <p className="text-sm text-muted-foreground">Central de modelos</p>
+            <h1 className="text-2xl font-semibold text-foreground">Modelos de Contrato</h1>
           </div>
-          <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+          <Badge variant="secondary" className="bg-primary/5 text-primary">
             Beta
           </Badge>
         </div>
@@ -195,14 +195,14 @@ export default function Models() {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-lg">Enviar novo modelo</CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Aceita PDF, DOC, DOCX ou outros arquivos de referencia para seus contratos.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm text-gray-700">Nome do modelo</label>
+                <label className="text-sm text-foreground">Nome do modelo</label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -211,7 +211,7 @@ export default function Models() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-gray-700">Arquivo</label>
+                <label className="text-sm text-foreground">Arquivo</label>
                 <Input
                   type="file"
                   accept=".pdf,.doc,.docx,.odt,.txt"
@@ -221,7 +221,7 @@ export default function Models() {
               </div>
             </div>
             <div className="space-y-2">
-                <label className="text-sm text-gray-700">Descricao (opcional)</label>
+                <label className="text-sm text-foreground">Descricao (opcional)</label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -234,7 +234,7 @@ export default function Models() {
               <Button onClick={handleCreate} disabled={saving}>
                 {saving ? "Salvando..." : "Salvar modelo"}
               </Button>
-              {file && <span className="text-sm text-gray-500">{file.name}</span>}
+              {file && <span className="text-sm text-muted-foreground">{file.name}</span>}
             </div>
           </CardContent>
         </Card>
@@ -243,11 +243,11 @@ export default function Models() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg">Modelos salvos</CardTitle>
-              <p className="text-sm text-gray-500">Catalogo de documentos de referencia.</p>
+              <p className="text-sm text-muted-foreground">Catalogo de documentos de referencia.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="h-4 w-4 text-gray-400 absolute left-2 top-2.5" />
+                <Search className="h-4 w-4 text-muted-foreground absolute left-2 top-2.5" />
                 <Input
                   className="pl-8 w-56"
                   placeholder="Buscar modelo"
@@ -261,9 +261,9 @@ export default function Models() {
           <Separator />
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-6 text-sm text-gray-500">Carregando...</div>
+              <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
             ) : filtered.length === 0 ? (
-              <div className="p-6 text-sm text-gray-500">
+              <div className="p-6 text-sm text-muted-foreground">
                 Nenhum modelo enviado ainda. Adicione arquivos para reutilizar em novos contratos.
               </div>
             ) : (
@@ -282,11 +282,11 @@ export default function Models() {
                     <TableRow key={tpl.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-4 w-4 text-primary" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{tpl.name}</p>
+                            <p className="text-sm font-medium text-foreground">{tpl.name}</p>
                             {tpl.filePath && (
-                              <p className="text-xs text-gray-500 break-all">{tpl.filePath}</p>
+                              <p className="text-xs text-muted-foreground break-all">{tpl.filePath}</p>
                             )}
                           </div>
                         </div>
@@ -309,14 +309,14 @@ export default function Models() {
                             href={`${API_URL}${tpl.filePath}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-blue-600 text-sm inline-flex items-center gap-1 hover:underline"
+                            className="text-primary text-sm inline-flex items-center gap-1 hover:underline"
                             >
                               <Download className="h-4 w-4" />
                             </a>
                           )}
                           <Dialog open={editing?.id === tpl.id} onOpenChange={(open) => setEditing(open ? tpl : null)}>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-gray-700 hover:text-blue-700">
+                            <Button variant="ghost" size="icon" className="text-foreground hover:text-primary">
                               <PencilLine className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
@@ -326,7 +326,7 @@ export default function Models() {
                               </DialogHeader>
                               <div className="space-y-3">
                                 <div className="space-y-1">
-                                  <label className="text-sm text-gray-700">Nome</label>
+                                  <label className="text-sm text-foreground">Nome</label>
                                   <Input
                                     value={editing?.name || ""}
                                     onChange={(e) =>
@@ -335,7 +335,7 @@ export default function Models() {
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-sm text-gray-700">Descricao</label>
+                                  <label className="text-sm text-foreground">Descricao</label>
                                   <Textarea
                                     value={editing?.description || ""}
                                     onChange={(e) =>
@@ -389,7 +389,7 @@ export default function Models() {
                             }}
                           >
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-gray-700 hover:text-blue-700">
+                              <Button variant="ghost" size="icon" className="text-foreground hover:text-primary">
                                 <Info className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
@@ -398,10 +398,10 @@ export default function Models() {
                                 <DialogTitle>Detalhes do modelo</DialogTitle>
                               </DialogHeader>
                               {loadingDetail ? (
-                                <div className="py-6 text-sm text-gray-500">Carregando detalhes...</div>
+                                <div className="py-6 text-sm text-muted-foreground">Carregando detalhes...</div>
                               ) : (
                                 <div className="space-y-4">
-                                  <div className="space-y-2 text-sm text-gray-700">
+                                  <div className="space-y-2 text-sm text-foreground">
                                     <p>
                                       <span className="font-medium">Nome:</span> {detail?.name}
                                     </p>
@@ -440,26 +440,26 @@ export default function Models() {
                                     )}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-gray-900 mb-2">Historico</p>
+                                    <p className="text-sm font-medium text-foreground mb-2">Historico</p>
                                     {detailHistory.length === 0 ? (
-                                      <p className="text-sm text-gray-500">Sem eventos registrados.</p>
+                                      <p className="text-sm text-muted-foreground">Sem eventos registrados.</p>
                                     ) : (
                                       <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                                         {detailHistory.map((h) => (
-                                          <div key={h.id} className="rounded border border-gray-200 p-2 text-sm">
-                                            <div className="flex justify-between text-gray-700">
+                                          <div key={h.id} className="rounded border border-border p-2 text-sm">
+                                            <div className="flex justify-between text-foreground">
                                               <span className="font-medium">
                                                 {actionLabels[h.action] || h.action}
                                               </span>
-                                              <span className="text-xs text-gray-500">
+                                              <span className="text-xs text-muted-foreground">
                                                 {new Date(h.createdAt).toLocaleString("pt-BR")}
                                               </span>
                                             </div>
-                                            <p className="text-xs text-gray-600">
+                                            <p className="text-xs text-muted-foreground">
                                               Por: {h.createdByName || h.createdBy || "N/D"}
                                             </p>
                                             {h.changedFields && (
-                                              <p className="text-xs text-gray-600">
+                                              <p className="text-xs text-muted-foreground">
                                                 Campos: {Object.keys(h.changedFields).join(", ")}
                                               </p>
                                             )}

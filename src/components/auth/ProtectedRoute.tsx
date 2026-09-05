@@ -16,10 +16,10 @@ export function ProtectedRoute({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Carregando...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando...</p>
         </div>
       </div>
     );
@@ -37,7 +37,7 @@ export function ProtectedRoute({
 
     if (userLevel < requiredLevel) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-muted">
           <div className="text-center max-w-md mx-auto p-6">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
@@ -54,16 +54,16 @@ export function ProtectedRoute({
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               Acesso Negado
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               Você não tem permissão para acessar esta página. Esta
               funcionalidade requer nível {requiredRole}.
             </p>
             <button
               onClick={() => window.history.back()}
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-primary hover:text-primary font-medium"
             >
               Voltar
             </button>

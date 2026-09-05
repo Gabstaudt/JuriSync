@@ -74,15 +74,15 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {user && !user.emailVerified && !justConfirmed && (
-        <div className="bg-amber-50 border-b border-amber-200 lg:ml-64 transition-all">
+        <div className="bg-accent/10 border-b border-accent/30 lg:ml-64 transition-all">
           <div className="px-4 py-3">
             <Alert className="bg-transparent border-none p-0">
-              <AlertTitle className="text-amber-800">
+              <AlertTitle className="text-foreground">
                 Confirme seu email para liberar todas as funcionalidades.
               </AlertTitle>
-              <AlertDescription className="flex flex-wrap items-center gap-3 text-amber-800">
+              <AlertDescription className="flex flex-wrap items-center gap-3 text-foreground">
                 <div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center">
                   <input
                     type="text"
@@ -125,7 +125,7 @@ export function Layout({ children }: LayoutProps) {
           className="fixed inset-0 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         >
-          <div className="absolute inset-0 bg-gray-600 opacity-75" />
+          <div className="absolute inset-0 bg-foreground/60" />
         </div>
       )}
 

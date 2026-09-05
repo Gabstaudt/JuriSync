@@ -87,10 +87,10 @@ export default function Profile() {
   const getRoleColor = (role: string) => {
     const colors = {
       admin: "bg-red-100 text-red-800",
-      manager: "bg-blue-100 text-blue-800",
+      manager: "bg-primary/10 text-primary",
       user: "bg-green-100 text-green-800",
     };
-    return colors[role as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[role as keyof typeof colors] || "bg-muted text-foreground";
   };
 
   return (
@@ -99,8 +99,8 @@ export default function Profile() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Meu Perfil</h1>
+            <p className="text-muted-foreground mt-1">
               Gerencie suas informações pessoais e configurações
             </p>
           </div>
@@ -171,7 +171,7 @@ export default function Profile() {
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome Completo</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="name"
                         value={formData.name}
@@ -190,7 +190,7 @@ export default function Profile() {
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mail</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="email"
                         type="email"
@@ -210,7 +210,7 @@ export default function Profile() {
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefone</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="phone"
                         value={formData.phone}
@@ -230,7 +230,7 @@ export default function Profile() {
                   <div className="space-y-2">
                     <Label htmlFor="department">Departamento</Label>
                     <div className="relative">
-                      <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="department"
                         value={formData.department}
@@ -261,7 +261,7 @@ export default function Profile() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">12</div>
+                    <div className="text-2xl font-bold text-primary">12</div>
                     <div className="text-sm text-muted-foreground">
                       Contratos Criados
                     </div>

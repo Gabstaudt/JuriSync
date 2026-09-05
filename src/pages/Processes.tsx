@@ -26,7 +26,7 @@ const statusLabels: Record<ProcessStatus, string> = {
 const statusClasses: Record<ProcessStatus, string> = {
   ativo: "bg-emerald-100 text-emerald-800",
   em_andamento: "bg-amber-100 text-amber-800",
-  encerrado: "bg-gray-200 text-gray-700",
+  encerrado: "bg-gray-200 text-foreground",
 };
 
 const contingencyLabels: Record<ProcessContingency, string> = {
@@ -164,12 +164,12 @@ const Processes = () => {
       <div className="p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Processos</h1>
-            <p className="text-sm text-gray-500">Acompanhe processos e relacione a pastas.</p>
+            <h1 className="text-2xl font-semibold text-foreground">Processos</h1>
+            <p className="text-sm text-muted-foreground">Acompanhe processos e relacione a pastas.</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9 w-56"
                 placeholder="Pesquisar processos..."
@@ -205,9 +205,9 @@ const Processes = () => {
                 </div>
                 <CardDescription>{p.description || "Sem descricao"}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-1 text-sm text-gray-600">
+              <CardContent className="space-y-1 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <Gavel className="h-4 w-4 text-gray-500" />
+                  <Gavel className="h-4 w-4 text-muted-foreground" />
                   {p.folderId
                     ? `Pasta: ${folders.find((f) => f.id === p.folderId)?.name || "Sem nome"}`
                     : "Sem pasta"}
@@ -223,7 +223,7 @@ const Processes = () => {
             </Card>
           ))}
           {!filtered.length && (
-            <div className="col-span-full flex items-center justify-center rounded-lg border border-dashed p-8 text-sm text-gray-500">
+            <div className="col-span-full flex items-center justify-center rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
               Nenhum processo encontrado.
             </div>
           )}

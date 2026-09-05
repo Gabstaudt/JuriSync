@@ -59,11 +59,11 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const getRoleColor = (role: string) => {
     const colors = {
-      admin: "bg-red-100 text-red-800",
-      manager: "bg-blue-100 text-blue-800",
-      user: "bg-green-100 text-green-800",
+      admin: "bg-destructive/10 text-destructive",
+      manager: "bg-primary/10 text-primary",
+      user: "bg-accent/10 text-accent",
     };
-    return colors[role as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[role as keyof typeof colors] || "bg-muted text-muted-foreground";
   };
 
   const getPageTitle = () => {
@@ -79,7 +79,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-card border-b border-border">
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Left side */}
         <div className="flex items-center gap-4">
@@ -93,9 +93,16 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
 
+          {/* Logo (visível apenas quando a sidebar com a marca está oculta) */}
+          <img
+            src="/logos/svg/jurisync-simbolo.svg"
+            alt="JuriSync"
+            className="h-7 w-auto sm:hidden"
+          />
+
           {/* Page title */}
           <div className="hidden sm:block">
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-xl font-semibold text-foreground">
               {getPageTitle()}
             </h1>
           </div>
@@ -104,13 +111,13 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* Center - Search */}
         <div className="flex-1 max-w-md mx-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Buscar contratos, pastas..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
+              className="pl-10 bg-muted border-border focus:bg-card"
             />
           </div>
         </div>
@@ -130,10 +137,10 @@ export function Header({ onMenuClick }: HeaderProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {user?.name || "Usuário"}
                   </p>
-                  <p className="text-xs text-gray-500">{user?.email || ""}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email || ""}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -178,7 +185,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 Sair
               </DropdownMenuItem>

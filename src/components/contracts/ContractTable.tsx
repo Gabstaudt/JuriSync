@@ -200,7 +200,7 @@ export function ContractTable({
                       ? "text-red-600"
                       : contract.status === "expiring_soon"
                         ? "text-yellow-600"
-                        : "text-gray-900"
+                        : "text-foreground"
                   }`}
                 >
                   {formatDate(contract.endDate)}

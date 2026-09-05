@@ -147,8 +147,8 @@ export default function NewFolder() {
             Voltar
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Nova Pasta</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Nova Pasta</h1>
+            <p className="text-muted-foreground mt-1">
               Crie uma nova pasta para organizar seus contratos
             </p>
           </div>
@@ -209,7 +209,7 @@ export default function NewFolder() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Preview */}
-              <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted">
                 <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
                   style={{ backgroundColor: formData.color }}
@@ -313,7 +313,7 @@ export default function NewFolder() {
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white" />
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-border border-t-white" />
                   Criando...
                 </>
               ) : (
